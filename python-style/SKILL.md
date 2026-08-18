@@ -2,16 +2,25 @@
 name: python-style
 description: >
   Personal Python coding standard: minimalist architecture, explicit typing,
-  reST docstrings, ASD-STE100 plain language, why-not-what comments,
-  actionable error handling, pragmatic logging, never log-and-raise. Use
-  whenever writing, editing, or reviewing Python code — new modules,
-  functions, CLI tools, adding try/except blocks, adding logging, or when the
-  user says "python style", "clean python", "lean code", "idiomatic python".
+  PEP 8 naming, PEP 257 docstrings in reST, ASD-STE100 plain language,
+  why-not-what comments, actionable error handling, pragmatic logging, never
+  log-and-raise. Use whenever writing, editing, or reviewing Python code — new
+  modules, functions, CLI tools, adding try/except blocks, adding logging, or
+  when the user says "python style", "clean python", "lean code", "idiomatic
+  python".
 ---
 
 Apply this standard to Python code you write or edit. It governs architecture,
-typing, docstrings, language, comments, error handling, and logging as one
-coherent set of rules — don't apply only part of it.
+typing, naming, docstrings, language, comments, error handling, and logging.
+
+These rules serve readability, which is the reason PEP 8 gives for having them:
+"code is read much more often than it is written." They are guidelines, not a
+mandate to apply at full weight everywhere. PEP 8's own opening applies to this
+document too — "know when to be inconsistent — sometimes style guide
+recommendations just aren't applicable" — and the first reason it lists is
+"when applying the guideline would make the code less readable." A
+self-explanatory one-line helper carrying a five-line docstring is that
+failure. Judge each rule against the code in front of you.
 
 ## Architecture
 
@@ -74,27 +83,108 @@ syncs with `--no-dev`, `dev` syncs the `dev` group on top.
 - Use the precise type (`Sequence[str]`, `Mapping[str, int]`, `X | None`),
   not `Any`, unless the value is genuinely dynamic.
 
-## Docstrings: reST format
+## Naming and layout
 
-Every public module, class, and function/method gets a docstring in reST
-(Sphinx) format:
+Standard PEP 8 conventions. The docstring rules below depend on the underscore
+one, so it is not optional here:
+
+- `snake_case` for functions, methods, variables and modules.
+- `CapWords` for classes. `UPPER_CASE_WITH_UNDERSCORES` for constants.
+- Exceptions are classes, so `CapWords`, with an `Error` suffix where the name
+  denotes a failure (`ConfigError`).
+- A single leading underscore marks a name as internal. That underscore is the
+  line the docstring rule uses: `_helper` is non-public.
+- Declare the public surface with `__all__` in a module meant to be imported
+  from.
+
+Line length: 79 characters for code, 72 for docstrings and comments. PEP 8
+allows a project to raise code to 99, "provided that comments and docstrings
+are still wrapped at 72 characters." Follow whatever a project already
+configures for ruff or black; where nothing is configured, use these numbers.
+
+## Docstrings
+
+The house format is reST (Sphinx) fields. How much docstring a function gets is
+set by PEP 257 and PEP 8, not by habit: the weight is proportional to what the
+signature does not already say.
+
+### Where a docstring is required
+
+Public modules, functions, classes and methods, including `__init__`.
+
+A non-public name (single leading underscore) does not need one. PEP 8:
+"Docstrings are not necessary for non-public methods, but you should have a
+comment that describes what the method does. This comment should appear after
+the `def` line." Write that comment only where the name and signature don't
+already carry the meaning — see `Comments` below.
+
+### Default: one line
+
+"One-liners are for really obvious cases." Most functions are that case, so a
+one-line docstring is the default and going past it needs a reason.
 
 ```python
-def load_config(config_path: Path) -> Config:
+def _to_seconds(ms: int) -> float:
+    """Convert milliseconds to seconds."""
+```
+
+- Closing `"""` on the same line as the opening quotes.
+- No blank line before or after it.
+- A phrase ending in a period.
+- Imperative mood. PEP 257: a docstring "prescribes the function or method's
+  effect as a command ("Do this", "Return that"), not as a description; e.g.
+  don't write "Returns the pathname ..."." Write `Convert milliseconds to
+  seconds.` — not `Converts ...`, and not `This function converts ...`.
+
+### Never restate the signature
+
+PEP 257: "The one-line docstring should NOT be a "signature" reiterating the
+function/method parameters (which can be obtained by introspection)."
+
+Every signature here carries type hints (see `Typing`), so the hints are the
+introspectable part. Therefore:
+
+- **Never write `:type:` or `:rtype:`.** The annotation is the type, and Sphinx
+  renders it from the annotation.
+- **Never write a `:param:` that only repeats the name and the hint.**
+  `:param path: The path.` against `path: Path` adds nothing. Leave it out.
+- **Never write a `:returns:` that only repeats the summary line.**
+
+### Expand only for what the signature can't say
+
+Add a field when a reader who has already read the signature would still be
+missing something:
+
+- `:param x:` — units, a constraint, a default behaviour, the meaning of a
+  sentinel value, or which of several readings applies.
+- `:returns:` — when the return value needs more than the summary line gives.
+- `:raises X:` — for an exception the function raises deliberately, as part of
+  its contract. Not for every exception that could propagate from below.
+
+```python
+def load_config(path: Path) -> Config:
     """Load and validate the configuration file.
 
-    :param config_path: Path to the configuration file.
-    :type config_path: Path
-    :returns: The parsed configuration.
-    :rtype: Config
-    :raises ValueError: If the file is missing or fails validation.
+    :param path: Location of the TOML file. A relative path resolves
+        against the project root, not the working directory.
+    :raises ValueError: If a required key is missing.
     """
 ```
 
-Use `:param:`/`:type:` per parameter, `:returns:`/`:rtype:`, and `:raises:`
-per exception type that can propagate out of the function. Skip `:type:`
-only where the signature's type hint already makes it fully redundant to a
-reader of the rendered docs.
+`path: Path` already says it is a path, so the `:param:` earns its place on the
+resolution rule alone. There is no `:type:`, no `:rtype:`, and no `:returns:`
+repeating the summary.
+
+### Multi-line mechanics
+
+- Summary line, blank line, then the elaboration.
+- Closing `"""` on a line by itself.
+- A blank line after every class docstring.
+- A module docstring lists what the module exports, one line for each. A
+  package docstring (in `__init__.py`) lists the modules and subpackages.
+- A script's module docstring doubles as its usage message: what the script
+  does, the command line syntax, and the environment variables and files it
+  uses.
 
 ## Plain language: ASD-STE100
 
@@ -114,6 +204,10 @@ CLI help strings — follows ASD-STE100 (Simplified Technical English):
 - Spell out the actor and the action: avoid vague pronouns ("it", "this")
   when the antecedent isn't the immediately preceding noun.
 
+One carve-out: a docstring summary line takes the imperative mood that PEP 257
+requires ("Open the file."), not the actor-plus-verb form of the second rule
+above. Every other rule in this list still applies to that line.
+
 This applies to `Error handling` and `Logging` below: every message must
 also be Simplified-Technical-English-compliant.
 
@@ -130,12 +224,37 @@ disagree on contractions and person, so don't apply both to one file.
   constraint, a workaround for a specific bug, an edge case a reader would
   otherwise "fix" by mistake. If removing the comment wouldn't confuse a
   future reader, don't write it.
+- One exception, and it comes from PEP 8: a non-public function may carry a
+  short what-comment after the `def` line in place of a docstring. That is the
+  only sanctioned what-comment. It is still unnecessary when the name and the
+  signature already say it — `_to_seconds(ms: int) -> float` needs nothing.
+
+Mechanics:
+
+- Complete sentences. Capitalize the first word, unless it is an identifier
+  that begins with a lowercase letter — never alter the case of an identifier.
+- Block comments sit at the indentation of the code they describe. Each line
+  starts with `#` and one space. Separate paragraphs inside one block with a
+  line holding a bare `#`.
+- Inline comments sparingly, at least two spaces clear of the statement.
+- "Comments that contradict the code are worse than no comments." A comment
+  that no longer matches the code gets updated or deleted in the same edit.
 
 ## Error handling
 
 - Use standard `try/except/raise` with built-in exception types
-  (`ValueError`, `RuntimeError`, `FileNotFoundError`, ...). Don't create empty
-  custom exception subclasses that add no fields or behavior.
+  (`ValueError`, `RuntimeError`, `FileNotFoundError`, ...). Define a custom
+  exception only when a caller needs to catch that failure specifically: PEP 8
+  builds a hierarchy around "the distinctions code catching the exceptions
+  needs to make". An exception that nobody catches by type earns nothing — use
+  a built-in.
+- Derive from `Exception`, never from `BaseException`.
+- Catch specific exceptions. Never write a bare `except:` — it also catches
+  `SystemExit` and `KeyboardInterrupt`, so Ctrl-C stops working. Use
+  `except Exception:` only where the intent really is every program error.
+- Chain when you replace an exception. `raise X from Y` keeps the original
+  traceback. Use `raise X from None` only to hide an inner error that tells the
+  reader nothing, and then carry its useful details into the new message.
 - Every raised error message must name the specific value/variable that
   caused the failure and give a concrete troubleshooting hint — never a bare
   `raise` with no context, and never a generic "Failed" or "Something went
