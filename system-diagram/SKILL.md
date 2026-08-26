@@ -64,8 +64,19 @@ diagram fills up while explaining less.
   because it sits inside its file's container.
 - An edge carries the line of the statement doing what it claims, qualified
   with a filename (`apps.py:173`), because edges cross files.
-- Color encodes exactly one thing, stated in the legend. See
-  `information-design` before adding a second visual channel.
+- Color encodes exactly one thing, stated in the legend. Adding a second
+  visual channel means invoking `information-design` first, not deciding by
+  eye.
+
+## The visual half is a separate skill
+
+**Invoke `information-design`**—the skill itself, through the Skill tool, not
+the idea of it. This skill governs what a diagram claims. That one governs
+whether a reader can take it in: measure and scale on the surface it sits on,
+and how many channels the marks spend on one fact.
+
+Run it when you add or change a visual encoding, restyle the diagram, or render
+it to a page. A diagram is not finished until both have run.
 
 ## Each hop
 
@@ -79,7 +90,9 @@ reviewable.
 4. Parse-check: `npx -y -p @mermaid-js/mermaid-cli mmdc -i x.mmd -o x.svg`.
    What fails locally also fails on the board.
 5. Re-verify that every `file:line` reference resolves inside its file.
-6. Report node and edge counts, then **stop** and wait.
+6. Invoke `information-design` over the result whenever this hop changed an
+   encoding or the rendered page.
+7. Report node and edge counts, then **stop** and wait.
 
 ## Failure modes
 
