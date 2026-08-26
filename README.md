@@ -9,9 +9,11 @@ up from `~/.claude/skills`.
 | --- | --- |
 | [`conventional-commit`](conventional-commit/SKILL.md) | Single-line Conventional Commits, scope taken from the repo's `SCOPES.md`. |
 | [`dockerfile-style`](dockerfile-style/SKILL.md) | Multi-stage Dockerfiles with dev and prod targets and BuildKit cache mounts for apt, uv, mamba, and ccache. |
+| [`information-design`](information-design/SKILL.md) | Layout and information-density rules from Ruder and Tufte, with the standing rule that no visual claim ships without a check. |
 | [`isabl-app`](isabl-app/SKILL.md) | Scaffold an Isabl app that wraps a bioinformatics tool, plus a static self-check for faults that otherwise only surface on HPC. |
 | [`jupyter-notebook`](jupyter-notebook/SKILL.md) | Analytical notebook standard: plot style, small multiples, output-noise cleanup, two-pass dev-then-prod authoring. |
 | [`python-style`](python-style/SKILL.md) | Minimalist Python: explicit typing, PEP 8 naming, PEP 257 docstrings in reST sized to what the signature does not say, plain language, actionable error handling, never log-and-raise. |
+| [`system-diagram`](system-diagram/SKILL.md) | Mermaid diagrams of real systems: a node grammar borrowed from UML, a validator that enforces it, one hop per turn. |
 | [`vale-google-style`](vale-google-style/SKILL.md) | Lint Markdown prose against the Google developer documentation style guide with Vale, then fix the findings. |
 
 ## Install
