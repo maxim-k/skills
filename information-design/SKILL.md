@@ -34,6 +34,12 @@ figure gets strangled—a 4498px diagram trapped in a 1040px prose column used
 58% of an 1800px screen with free space on both sides. Prose keeps the measure;
 figures break out full-bleed.
 
+**Lay content along the surface's long axis.** Screens, slides, and board
+viewports are landscape—wider than tall. Content that flows down the short axis
+exhausts it and scrolls while width sits empty; the same content flowing along
+the long axis fits more before the first scroll. Density is a function of the
+axis you spend first.
+
 **A typeface does one job.** Mono meant code, data, headings, labels, controls,
 and captions at once, so it contrasted with nothing. Give each face a single
 role and let size and weight carry hierarchy.
