@@ -29,9 +29,9 @@ state in one checkable sentence does not enter the vocabulary.
 | `[( )]` cylinder | datastore | consumed, never produced |
 | `[/ /]` flag | input/output | something writes it |
 | `{{ }}` hexagon | external actor | source or sink, never both |
-| `{ }` diamond | decision node | two or more labelled outflows, label is a question |
+| `{ }` diamond | decision node | two or more labelled outflows, label is a question; branches may share a target |
 | `[ ]` rectangle | component | a boundary, not expanded at this level |
-| subgraph | package | composition only, never an arrow endpoint |
+| subgraph | package | a real module, package, or class; composition only, never an arrow endpoint |
 
 Adapt the vocabulary to the domain, but derive each entry the same way: name
 the UML element it compresses, state its contract, and add the contract to the
@@ -41,14 +41,66 @@ The failure this prevents, verbatim from the user who caught it: *"'condition'
 nodes that do not have conditions and choices and just statements."* Eight
 diamonds, none with a second branch, none labelled with a question.
 
+The opposite failure is deleting decisions that are real. A branch counts when
+it changes **what the system produces**—a flag added to a command, a file
+written or not, a helper called with different arguments—even when both branches
+flow on to the same node. Four diamonds in the `expanded_genomics` baseline
+survive on that test: a matched-normal check that adds `--unmatched` to the
+command, an html-pair check that registers one report or two, a project-id check
+that runs the t-SNE with or without a purity filter, and an individual-passed
+check that concatenates the tables or only globs them. Rule: if a conditional
+changes an output, it is a diamond; if it only picks which statement runs next
+and the outputs are identical, it is not.
+
+A command, script, or config file the system builds for something else to run is
+a flag, and it is terminal—draw it as the output of the method that assembles it
+and stop. The external runtime that consumes it (an HPC job, a shell, a
+scheduler) is one hop past the boundary and is not drawn.
+
 ## Structure and flow are different channels
 
 **Containment carries structure.** A class sits inside its file, a method
-inside its class. No `defines` or `holds` edges—nesting already says it.
+inside its class. No `defines` or `holds` edges—nesting already says it. A
+subgraph is only ever a file, package, or class that exists in the source. A box
+drawn to group "the external things," "the outputs," or "everything on disk" is
+not structure—it is a caption pretending to be one, and `information-design`
+will strike it.
+
+That rule is about which boxes you draw, not which nodes go in them. Every node
+nests in the container holding the source it refers to—a constant in its file, a
+diamond in the class if the branch is in a method or in the file if it is in a
+module function. A diamond is not a `def`, but it has a location; one floating
+outside every container leaves its bare `L94-105` pointing at open space.
 
 **Arrows carry flow, and point the way things move.** A node consumes what
 points at it and produces what points away. `TSV_RESULTS → the class`, never
 the reverse.
+
+The call graph is not the flow graph. When a method calls a helper to get a
+value back, the value flows from the helper to the caller: draw
+`get_purities → generate_tsne`, though the call reads the other way. The arrow
+follows the data.
+
+An artifact written by one node and read by one node in the same flow, with no
+branch between them and no second consumer, carries no more than an edge does.
+Label the edge with the file and delete the node. A node earns its place by
+being read twice, branched on, or crossing the boundary.
+
+A framework or abstract base that invokes lifecycle hooks—a template method, a
+Django `save`/`clean`, an Isabl `AbstractApplication`—is not a control-flow hub.
+Draw it as one bounded node with only the trigger edges it genuinely
+originates, usually one per lifecycle entry point (`runs the analysis`, `runs
+the project merge`). The hooks it calls do not call each other; connect them
+through the artifacts they read and write, never hook → hook. "A function needs
+a caller" is then satisfied by an upstream artifact, an input, or that single
+trigger—not by a fan-out from the base. The dict a registration hook returns is
+a flag the hooks write to (`registered results`), not an edge back to the
+framework.
+
+Collapsing the framework to one node does not absorb the class's data. A class
+attribute carrying data a hook reads—a settings dict, a results schema, a skip
+list—is a datastore (cylinder) with an edge into the hook that consumes it. Only
+the scalar metadata (`NAME`, `VERSION`, `ASSEMBLY`) is plumbing and stays out.
 
 `file --defines--> class` reads fine as a sentence and says nothing about where
 anything goes. Drawing predicates instead of flow is the most common way a
@@ -67,6 +119,9 @@ diagram fills up while explaining less.
 - Color encodes exactly one thing, stated in the legend. Adding a second
   visual channel means invoking `information-design` first, not deciding by
   eye.
+- Lay the flow left to right (`flowchart LR`)—the long-axis rule from
+  `information-design`: a landscape surface fits more before it scrolls. Miro
+  reflows on import, but the source still reads left to right.
 
 ## The visual half is a separate skill
 
@@ -104,6 +159,17 @@ author.
 - **Writing a caption to justify a choice made by eye.** If a set cannot be
   described by a rule, the set is wrong, not the description.
 - **Drawing predicates instead of flow.**
+- **Deleting every decision to avoid drawing a bad one.** Over-reading the
+  broken-diamond warning and ending with zero diamonds when the source has four
+  real forks. A conditional that changes an output is a decision node.
+- **Drawing one hop too far.** Modelling the HPC job that runs the emitted
+  command, or wrapping the one-hop imports in an "external" subgraph. The
+  emitted command is a terminal flag; the imports are loose rectangles.
+- **A node for every intermediate file.** Pass-through artifacts—written once,
+  read once, no branch—belong on the edge, not in the graph.
+- **The framework as a hub.** An abstract base with an edge to and from every
+  method it invokes. It is one node with a trigger edge per lifecycle entry
+  point and no in-edges; the methods connect through their artifacts.
 - **Not verifying against the source.** One attempt diagrammed the wrong
   directory entirely: the prompt said "four files," the named folder held five,
   and the mismatch sat in the first `ls` output unread. When the target and the
