@@ -216,6 +216,53 @@ def check(block: str, name: str) -> list:
     return bad
 
 
+def advisories(block: str, name: str) -> list:
+    """Warn when a diagram is drawn below system altitude.
+
+    Not violations — a genuinely large system may need every node. But each of
+    these says "look at the altitude", and in a corpus of diagrams the ones that
+    read well sit under every threshold while the one a reader called
+    overwhelming broke three at once.
+
+    :param block: The body of a fenced mermaid block.
+    :param name: Name used in the report.
+    :returns: One `WARN:` message per tripped threshold.
+    :rtype: list
+    """
+    kinds, labels, edges, _, _ = parse(block)
+    n, e = len(kinds), len(edges)
+    if n == 0:
+        return []
+    deg = Counter()
+    for src, _, dst in edges:
+        deg[src] += 1
+        deg[dst] += 1
+    diamonds = sum(1 for k in kinds.values() if k == "diamond")
+
+    warn = []
+    if n > 25:
+        warn.append(f"{name}: {n} nodes — past the one-glance budget; fold guard "
+                    f"clauses and side effects onto edges before splitting hops")
+    if n > 20 and e / n > 1.5:
+        warn.append(f"{name}: {e} edges over {n} nodes (ratio {e / n:.2f}) — "
+                    f"over-connected for its size; a hub to decompose or the "
+                    f"wrong altitude")
+    hub, hub_deg = deg.most_common(1)[0] if deg else ("", 0)
+    if hub_deg > 10:
+        warn.append(f"{name}: {hub} has {hub_deg} edges — a bus; draw the "
+                    f"individual artifacts that pass through it, not one node")
+    if diamonds > n / 6:
+        warn.append(f"{name}: {diamonds} diamonds over {n} nodes — decision "
+                    f"density high; guard clauses and error paths are edges, "
+                    f"not decisions")
+    for src, lbl, dst in edges:
+        if len(lbl) > 60:
+            warn.append(f"{name}: edge {src}->{dst} label is {len(lbl)} chars — "
+                        f"a sentence; cut to a verb phrase plus one file:line")
+            break
+    return warn
+
+
 def block_names(text: str) -> list:
     """Name each mermaid block after the markdown heading above it.
 
@@ -283,6 +330,24 @@ def _selfcheck() -> int:
     )
     assert any("framework hub" in m for m in check(hub, "t")), "hub"
 
+    small = 'flowchart LR\n%% boundary: sources=A sinks=B\nA{{"a"}}\nB{{"b"}}\n'
+    small += 'subgraph f["f.py"]\n' + "".join(
+        f'  n{i}(["fn{i}<br/>L{i}"])\n' for i in range(8)) + 'end\n'
+    small += 'A -->|"in"| n0\n' + "".join(
+        f'n{i} -->|"step"| n{i + 1}\n' for i in range(7)) + 'n7 -->|"out"| B'
+    assert advisories(small, "t") == [], advisories(small, "t")
+
+    big = 'flowchart LR\n%% boundary: sources=A sinks=B\nA{{"a"}}\nB{{"b"}}\n'
+    big += 'subgraph f["f.py"]\n' + "".join(
+        f'  n{i}(["fn{i}<br/>L{i}"])\n' for i in range(30)) + 'end\n'
+    big += 'A -->|"in"| n0\n' + "".join(
+        f'n{i} -->|"step"| n{i + 1}\n' for i in range(29)) + 'n29 -->|"out"| B'
+    assert any("one-glance budget" in m for m in advisories(big, "t")), "budget"
+
+    longlbl = small.replace('A -->|"in"| n0',
+                            'A -->|"' + "x" * 70 + '"| n0')
+    assert any("a sentence" in m for m in advisories(longlbl, "t")), "long label"
+
     print("selfcheck ok")
     return 0
 
@@ -306,7 +371,7 @@ def main() -> int:
         print(f"no mermaid blocks found in {path}")
         return 1
 
-    problems = []
+    problems, warnings = [], []
     for name, block in zip(block_names(text), blocks):
         kinds, _, edges, subs, _ = parse(block)
         print(f"{name}: {len(kinds)} nodes, {len(edges)} edges, "
@@ -314,6 +379,12 @@ def main() -> int:
         # a legend is a key: samples with no flow, so behaviour rules do not apply
         if "legend" not in name:
             problems += check(block, name)
+            warnings += advisories(block, name)
+
+    if warnings:
+        print(f"\n{len(warnings)} altitude warning(s):")
+        for item in warnings:
+            print("  WARN: " + item)
 
     if problems:
         print(f"\n{len(problems)} violation(s):")
