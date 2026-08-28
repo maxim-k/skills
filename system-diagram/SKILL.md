@@ -3,7 +3,7 @@ name: system-diagram
 description: >
   Build a Mermaid diagram of a real system—a codebase, a pipeline, an
   infrastructure layout—with a node grammar borrowed from UML and enforced by
-  a validator, drawn one hop per turn against the real source. Use when the user
+  a validator, drawn at system altitude against the real source. Use when the user
   asks for a diagram, a schema, a graph, or a visual map of how something works,
   and when a diagram targets Miro or another board.
 ---
@@ -13,11 +13,13 @@ real, every edge quotes a real statement, and a validator proves the shapes obey
 their own rules. Guessing produces a picture that looks authoritative and
 teaches the reader something false.
 
-Four things get decided for every element, in order: **is it in scope** (the
-boundary), **does it earn a node** (membership), **where does it sit**
+Decide, in order: **what is in scope** (the boundary), **how high to fly**
+(altitude), **does an element earn a node** (membership), **where does it sit**
 (containment), and only then **which shape and contract**. Shape comes last — it
 says how an element that already earned its place must behave. Most diagram
-faults are a membership or containment error wearing a shape question's clothes.
+faults are an altitude, membership, or containment error wearing a shape
+question's clothes. The commonest by far: drawing the code instead of the
+system, so every `if` becomes a diamond and every helper a node.
 
 ## Shapes come from UML, contracts included
 
@@ -70,8 +72,9 @@ directory, a package, a service — and what is outside it.
   whatever the boundary statement says. If a component would need expanding to
   answer the diagram's question, it is inside the boundary, not a rectangle.
 
-**Declare the crossings mechanically.** The first line inside every non-legend
-mermaid block is a manifest comment naming the boundary nodes:
+**Declare the crossings mechanically.** Every non-legend mermaid block carries a
+manifest comment near the top (after the `%%{init}%%` directive and `flowchart`
+line) naming the boundary nodes:
 
 ```
 %% boundary: sources=API,asset_bucket sinks=object_store
@@ -80,6 +83,34 @@ mermaid block is a manifest comment naming the boundary nodes:
 The validator checks that every declared source and sink is a real node with
 flow in the right direction — this is what catches a sink you dropped while
 collapsing the component that writes to it.
+
+## Altitude — how high to fly
+
+A system diagram is a map of **how work and data move through the system** — the
+processing stages and the data between them. It is not a transcription of the
+control flow. A reader holds it in their head; the moment they cannot, it has
+stopped being a system diagram and become a picture of the code.
+
+- **Pick the altitude from the question.** "How does this system work" → the
+  handful of stages the work passes through. "How does the retry path work" → a
+  different, lower diagram of one stage.
+- **Below the altitude — an edge label or a prose note, never a node:** guard
+  clauses (`assert`, `raise`, an early `return`, an `isfile` presence check), an
+  error / abort terminal, and a branch that only toggles a **peripheral side
+  effect** — a log line, an upload mirror, a cache write — rather than the main
+  deliverable. Fold these onto the edge that carries the real flow.
+- **One diagram, kept in budget.** The output is a single end-to-end diagram,
+  not an overview plus drill-downs. If it is running large, you have not
+  collapsed enough — fold more guards and side effects onto edges, model the
+  shared medium as its artifacts (below), and cut multi-clause edge labels to a
+  verb phrase. Splitting into per-region hops is the escape hatch for a system
+  too large even fully collapsed, not the normal path.
+- **The budget** (`information-design` states it, `check_diagram.py` warns past
+  it, thresholds derived from a corpus of diagrams that read well versus one
+  that did not): a view past **~25 nodes or ~38 edges**, an **edge/node ratio
+  over 1.5 once there are more than 15 nodes**, **any node with more than 8
+  edges**, or **more diamonds than one per seven nodes** — each says the
+  altitude is too low.
 
 ## Membership — does it earn a node
 
@@ -98,6 +129,14 @@ An artifact produced by one step and consumed by one step, with no branch and no
 second reader, **is an edge** — label the edge with the `file:line` and delete
 the node. A chain of such intermediates collapses to labelled edges.
 
+**A shared medium is drawn as its contents, not as one node.** A filesystem, a
+queue, a bus, a database that many stages read and write: draw the individual
+artifacts that pass through it, each edge running from its real producer to its
+real consumer. One node that every stage connects to is a picture of the medium,
+not of the flow, and it is always the diagram's worst hub. Draw the medium
+itself only when its own behaviour — contention, ordering, durability — is what
+the diagram is about.
+
 A container earns its place the same way: **a subgraph is drawn iff it holds at
 least one node.** An empty namespace is a table of contents, not structure.
 
@@ -108,11 +147,13 @@ that do not have conditions and choices and just statements."* Eight diamonds,
 none with a second branch, none a question.
 
 The opposite failure is deleting real decisions to be safe. The test is one
-sentence: **a branch earns a diamond iff it changes what the system produces** —
-a flag added to a command, a file written or not, a helper called with different
-arguments. If it only picks which statement runs next and the outputs are
-identical, it is not a diamond. Branches that then converge on one node are
-normal — convergence is not a reason to drop the decision.
+sentence: **a branch earns a diamond iff it changes what the system produces on
+its main path** — a flag added to a command, the deliverable file written one
+way or another, a core helper called with different arguments. If it only picks
+which statement runs next with the same result, or aborts, or flips a peripheral
+side effect (see Altitude), it is not a diamond — it is an edge label. Branches
+that then converge on one node are normal; convergence is not a reason to drop a
+decision that passed the test.
 
 ## Containment — where does it sit
 
@@ -172,7 +213,12 @@ flow**, not to fan out from the node.
 
 ## Labels and references
 
-- Node label is a name. Edge label is a verb phrase. Diamond label is a question
+- Node label is a name. Edge label is a **short verb phrase plus one
+  `file:line`** — "reads report files (apps.py:150)", not "reads:
+  {ind}_research/_clinical/.html, *.json (apps.py:150-160)". A label the layout
+  engine strands at the midpoint of a long edge is unreadable; a label that is a
+  sentence is a paragraph the reader chases down a diagonal. Over ~60 characters
+  means either the label or the edge count is wrong. Diamond label is a question
   ending in `?`.
 - No kind prefixes such as `fn:` or `data:`. Shape carries kind; the legend
   states it once.
@@ -185,6 +231,9 @@ flow**, not to fan out from the node.
 - Default to `flowchart LR` — the long-axis rule from `information-design`: a
   landscape surface fits more before it scrolls. Use `TD` only when the system
   is a hierarchy or a dependency tree rather than a flow, and say why.
+- Set a translucent edge-label background so a label does not punch a hole in
+  the line it annotates. First line of the block:
+  `%%{init: {'themeVariables': {'edgeLabelBackground': 'rgba(255,255,255,0.75)'}, 'flowchart': {'curve': 'basis'}}}%%`
 
 ## The visual half is a separate skill
 
@@ -194,24 +243,26 @@ whether a reader can take it in. Run it when you add or change a visual
 encoding, restyle, or render to a page. A diagram is not finished until both
 have run.
 
-## Each hop
+## Building it
 
-Build one region per turn. A diagram that grows in one pass stops being
-reviewable.
+One diagram, at the altitude the boundary and the question set. Build it in one
+turn; if it will not come in under budget even fully collapsed, split into
+per-region hops and build one per turn — but reach for that only when the
+collapsed single diagram genuinely does not fit.
 
 1. **Read the real source first.** Take definition ranges from the language's
    own parser or a symbol index (LSP, ctags, tree-sitter) — never by counting
    lines. If the system emits its own dependency graph (`terraform graph`,
    framework introspection), read that as the source of truth for edges. Quote
    real branches for conditions.
-2. Rewrite the diagram in place, `%% boundary:` manifest on the first line.
-   Never append a second copy.
-3. Run `check_diagram.py <file.md>`. Zero violations, or fix before continuing.
+2. Write the diagram: `%%{init}%%` directive, `flowchart LR`, `%% boundary:`
+   manifest, then the body. Rewrite in place — never append a second copy.
+3. Run `check_diagram.py <file.md>`. Zero violations. Treat every `WARN:` as a
+   fault to fix too — it means the altitude is too low.
 4. Parse-check: `npx -y -p @mermaid-js/mermaid-cli mmdc -i x.mmd -o x.svg`.
    What fails locally also fails on the board.
 5. Re-verify that every `file:line` reference resolves inside its file.
-6. Invoke `information-design` whenever this hop changed an encoding or the
-   rendered page.
+6. Invoke `information-design` over the result.
 7. Report node and edge counts, then **stop** and wait.
 
 ## Failure modes
@@ -222,8 +273,11 @@ Each of these happened, and in each the reader caught it, not the author.
   this.
 - **Answering "what shape" when the fault is "whether a node".** Pass-through
   files drawn as nodes; an empty namespace drawn as a box.
-- **Deleting every decision to avoid drawing a bad one.** A conditional that
-  changes an output is a decision node.
+- **Drawing the code, not the system.** Every `if` a diamond, every helper a
+  node, the shared filesystem one 11-edge hub. Accurate and unreadable. The
+  altitude was never set.
+- **Deleting every decision to avoid drawing a bad one.** A branch that changes
+  the deliverable on the main path is a decision node.
 - **A node floating outside every container** with a bare range pointing at open
   space.
 - **Collapsing a component and losing its boundary crossing.** The imported
@@ -253,3 +307,6 @@ Confirmed by import, not assumed:
   into one row with invisible `~~~` links.
 - A node id that is a Mermaid reserved word (`click`, `end`, `graph`, …) breaks
   the parse. Suffix it (`clickLib`).
+- The `%%{init}%%` `themeVariables` survive a `mmdc` render but Miro applies its
+  own theme on import, so keep the diagram legible without the translucent-label
+  trick too — mainly by having few enough edges that no label is stranded.
