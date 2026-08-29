@@ -78,31 +78,28 @@ the group is wrong. Rewriting the caption to fit hides the fault.
 
 ## Node graphs: a complexity budget
 
-A diagram of a system, a flow, or a dependency tree has a size past which it
-stops informing and starts intimidating. The numbers below come from a corpus of
-such diagrams — the ones that read well sit at or under them, the one that a
-reader described as "anxiety, not clarity" broke three at once. They are
-checkable, so check them.
+A node graph has a size past which it stops informing and starts intimidating.
+The numbers come from a corpus of such diagrams — the ones that read well sit at
+or under them, the one a reader called "anxiety, not clarity" broke three at
+once. A budget is a **band**: a diagram well under it, of a system that is not
+small, has folded its structure rather than its detail. Check both directions.
 
-- **Element budget: ~20 nodes, ~30 edges for a graph meant to be taken in at a
-  glance.** More means the altitude is too low — stages have been split into
-  their steps, guards drawn as decisions, a shared store drawn as a hub.
-- **Edge/node ratio.** Past ~1.5 once there are more than ~15 nodes, the graph
-  is over-connected: a hub to decompose, cross-talk to collapse, or the wrong
-  altitude.
-- **Max degree.** A node with more than ~8 edges is a bus. Name it as the medium
-  (a queue, a filesystem) or draw the individual things that pass through it.
-- **Decision density.** More than about one diamond per seven nodes means guard
-  clauses and error paths are being drawn as decisions.
+- **Glance budget: ~20 nodes, ~30 edges** for a graph someone takes in at once.
+- **Working budget: ~35 nodes, ~45 edges** for a diagram of one flow or one
+  package that a reader studies. Past that, the boundary spans more than one
+  flow — scope it down; do not delete containers or nodes to fit.
+- **Edge/node ratio.** Past ~1.45 once there are more than 20 nodes, the graph
+  is over-connected: a hub to draw as its contents, or a boundary wider than one
+  flow. Folding a decision *raises* this ratio, so folding is not the fix.
+- **Max degree.** A node with more than ~8 edges is a bus. Draw the individual
+  things that pass through it as nodes.
+- **Decision density.** Many diamonds means functions were opened to draw their
+  inner branches. A decision is only a choice between functions or about whether
+  a whole output exists.
 - **Label reach.** An auto-layout engine puts an edge label at the edge's
-  midpoint; the longer the edge, the further the label from both of its
-  endpoints. A label that is a full sentence, on an edge that spans the diagram,
-  is unreadable in place. Cut labels to a short phrase; if they still collide,
-  there are too many edges.
-
-The cost of obeying this: a reader loses the ability to trace one specific
-low-level branch on the overview. That is the right trade — the low-level branch
-belongs in its own diagram, drawn when someone asks.
+  midpoint; the longer the edge, the further the label from both endpoints. A
+  label that is a full sentence on an edge spanning the diagram is unreadable in
+  place. Short phrase; if they still collide, there are too many edges.
 
 ## Where Tufte stops
 
