@@ -239,22 +239,35 @@ def advisories(block: str, name: str) -> list:
         deg[dst] += 1
     diamonds = sum(1 for k in kinds.values() if k == "diamond")
 
+    # thresholds: the eval corpus has one diagram that read well (33 nodes,
+    # 42 edges, ratio 1.27, max degree 8) and one called overwhelming (35, 57,
+    # 1.63, 9). node count barely separates them; edge density does. so the
+    # node checks are soft and the density checks carry the weight.
     warn = []
-    if n > 25:
-        warn.append(f"{name}: {n} nodes — past the one-glance budget; fold guard "
-                    f"clauses and side effects onto edges before splitting hops")
-    if n > 20 and e / n > 1.5:
+    if n > 40:
+        warn.append(f"{name}: {n} nodes — this is usually a boundary spanning "
+                    f"more than one flow, not detail to thin. Scope to one entry "
+                    f"point before deleting containers, nodes, or constants")
+    elif n > 33:
+        warn.append(f"{name}: {n} nodes — at or past the size of the largest "
+                    f"diagram that still read well; check every node earns its "
+                    f"place by the question")
+    if n > 20 and e / n > 1.45:
         warn.append(f"{name}: {e} edges over {n} nodes (ratio {e / n:.2f}) — "
-                    f"over-connected for its size; a hub to decompose or the "
-                    f"wrong altitude")
-    hub, hub_deg = deg.most_common(1)[0] if deg else ("", 0)
-    if hub_deg > 10:
-        warn.append(f"{name}: {hub} has {hub_deg} edges — a bus; draw the "
-                    f"individual artifacts that pass through it, not one node")
+                    f"over-connected: a hub to draw as its contents, or a "
+                    f"boundary wider than one flow. Folding a decision raises "
+                    f"this ratio; that is not the fix")
+    if e > 50:
+        warn.append(f"{name}: {e} edges — past the working budget; draw a shared "
+                    f"medium as its artifacts and scope the boundary to one flow")
+    buses = sorted(nid for nid, d in deg.items() if d > 8)
+    for nid in buses:
+        warn.append(f"{name}: {nid} has {deg[nid]} edges — a bus; draw the "
+                    f"things that pass through it as nodes, not one node")
     if diamonds > n / 6:
-        warn.append(f"{name}: {diamonds} diamonds over {n} nodes — decision "
-                    f"density high; guard clauses and error paths are edges, "
-                    f"not decisions")
+        warn.append(f"{name}: {diamonds} diamonds over {n} nodes — functions "
+                    f"were opened to draw their inner branches; a decision is a "
+                    f"choice between functions or about a whole output")
     for src, lbl, dst in edges:
         if len(lbl) > 60:
             warn.append(f"{name}: edge {src}->{dst} label is {len(lbl)} chars — "
@@ -339,10 +352,18 @@ def _selfcheck() -> int:
 
     big = 'flowchart LR\n%% boundary: sources=A sinks=B\nA{{"a"}}\nB{{"b"}}\n'
     big += 'subgraph f["f.py"]\n' + "".join(
-        f'  n{i}(["fn{i}<br/>L{i}"])\n' for i in range(30)) + 'end\n'
+        f'  n{i}(["fn{i}<br/>L{i}"])\n' for i in range(45)) + 'end\n'
     big += 'A -->|"in"| n0\n' + "".join(
-        f'n{i} -->|"step"| n{i + 1}\n' for i in range(29)) + 'n29 -->|"out"| B'
-    assert any("one-glance budget" in m for m in advisories(big, "t")), "budget"
+        f'n{i} -->|"step"| n{i + 1}\n' for i in range(44)) + 'n44 -->|"out"| B'
+    assert any("more than one flow" in m for m in advisories(big, "t")), "budget"
+
+    # a bus: every node over 8 edges is reported, not just the worst
+    bus = 'flowchart LR\n%% boundary: sources=A sinks=B\nA{{"a"}}\nB{{"b"}}\n'
+    bus += 'subgraph f["f.py"]\n  medium(["medium<br/>L1"])\n' + "".join(
+        f'  p{i}(["p{i}<br/>L{i}"])\n' for i in range(10)) + 'end\n'
+    bus += "".join(f'p{i} -->|"w"| medium\n' for i in range(10))
+    bus += 'medium -->|"out"| B\nA -->|"in"| p0'
+    assert any("medium has 11 edges" in m for m in advisories(bus, "t")), "bus"
 
     longlbl = small.replace('A -->|"in"| n0',
                             'A -->|"' + "x" * 70 + '"| n0')

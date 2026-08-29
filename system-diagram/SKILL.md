@@ -35,7 +35,7 @@ vocabulary.
 |---|---|---|
 | `([ ])` stadium | action / activity | reachable — has an incoming flow, or is a declared entry point |
 | `[( )]` cylinder | data store (`«datastore»`) | persistent; every edge is labelled with its operation (`reads` / `writes`). A store the diagram never writes to just has no in-edge — one case, not the contract |
-| `[/ /]` flag | activity parameter | a value at the boundary: an **input** nothing in the diagram writes, or an **output** something does. Never a mid-flow intermediate |
+| `[/ /]` flag | activity parameter | a value at the boundary: an **input** nothing in the diagram writes, or an **output** something does — one declared in the manifest, tested for in the source, or read across entry points. Never an unnamed mid-flow value |
 | `{{ }}` hexagon | actor / external system | a boundary role. One-directional if the interaction is; both directions if it is request/response — and then both edges are labelled |
 | `{ }` diamond | decision node | one in, two or more guarded outflows. House rules: the label is a question, and the branches change what the system produces |
 | `[ ]` rectangle | component / subsystem | shown collapsed. Its internals are out of scope; its boundary-crossing effects are not |
@@ -84,33 +84,72 @@ The validator checks that every declared source and sink is a real node with
 flow in the right direction — this is what catches a sink you dropped while
 collapsing the component that writes to it.
 
-## Altitude — how high to fly
+## Altitude — the function is the atom
 
-A system diagram is a map of **how work and data move through the system** — the
-processing stages and the data between them. It is not a transcription of the
-control flow. A reader holds it in their head; the moment they cannot, it has
-stopped being a system diagram and become a picture of the code.
+A system diagram shows **how data moves between the parts of a system** — what
+each part takes in, the one thing it does, what it puts out. It does not show
+what happens *inside* a part.
 
-- **Pick the altitude from the question.** "How does this system work" → the
-  handful of stages the work passes through. "How does the retry path work" → a
-  different, lower diagram of one stage.
-- **Below the altitude — an edge label or a prose note, never a node:** guard
-  clauses (`assert`, `raise`, an early `return`, an `isfile` presence check), an
-  error / abort terminal, and a branch that only toggles a **peripheral side
-  effect** — a log line, an upload mirror, a cache write — rather than the main
-  deliverable. Fold these onto the edge that carries the real flow.
-- **One diagram, kept in budget.** The output is a single end-to-end diagram,
-  not an overview plus drill-downs. If it is running large, you have not
-  collapsed enough — fold more guards and side effects onto edges, model the
-  shared medium as its artifacts (below), and cut multi-clause edge labels to a
-  verb phrase. Splitting into per-region hops is the escape hatch for a system
-  too large even fully collapsed, not the normal path.
-- **The budget** (`information-design` states it, `check_diagram.py` warns past
-  it, thresholds derived from a corpus of diagrams that read well versus one
-  that did not): a view past **~25 nodes or ~38 edges**, an **edge/node ratio
-  over 1.5 once there are more than 15 nodes**, **any node with more than 8
-  edges**, or **more diamonds than one per seven nodes** — each says the
-  altitude is too low.
+**A function (or method, task, resource, handler) is a black box.** Its node
+carries a verb-name and a definition range. Edges in are what it reads —
+arguments, files, constants, the results of other functions. Edges out are what
+it produces — its return value, a file it writes, data it hands to the next
+function. The branches, loops, and local variables inside it are **not diagram
+elements, even when they determine the output.** `def f(a): ...; return c` is
+one node, one edge in from `a`, one edge out to `c` — whether `c` is computed
+straight through, picked by an `if`, or accumulated in a loop, the diagram is
+the same. If both branches of an inner `if` return "a `c`", draw one edge to
+`c`.
+
+**A decision node appears only when the choice is made above the function line:**
+
+- an **orchestrator's body selects which of several functions to call** — the
+  branch routes the flow to different nodes (`if valid: process() else:
+  quarantine()`);
+- a **branch decides whether a whole output exists** — a file written or not, a
+  result registered or not, a downstream function called at all.
+
+A branch that only changes the *value* on an edge that exists either way is
+invisible. Expect few diamonds — often zero or one. Many diamonds means
+functions were opened.
+
+### What altitude does not remove
+
+Altitude is about not opening functions. It never licenses dropping the
+structure around them. A validator `WARN:` is answered by **scoping the diagram
+to one entry point**, or by drawing a hub as its contents — never by deleting
+one of these:
+
+- **Every source file that holds a drawn node is a container**; a class that
+  holds drawn methods is a container nested in its file; a collapsed
+  out-of-boundary import is a bare rectangle, never a box.
+- **Every function or method that transforms data is a node** — including one
+  called from a single place. Only a one-line pass-through wrapper folds into
+  its caller.
+- **Every constant, table, or schema the flow reads is a node**, in its file — a
+  settings object, a lookup table, a result schema; one reader is enough. A
+  literal used once inside one function as a local detail — a regex, a format
+  string — is not.
+- **Every artifact that crosses the boundary is a node** — one that is in the
+  `%% boundary:` manifest, or that the source tests for (`isfile`, a branched
+  glob), or that a different entry point reads than wrote it. An unnamed value
+  handed straight from one function to the next is an edge.
+- **A data source read by two or more functions is one node** with an edge to
+  each — never inlined into two edge labels, never duplicated.
+
+If the diagram is over budget with all of that drawn, the boundary spans more
+than one flow — scope it down. If it is *under* budget on a system that is not
+small, structure was folded — walk this list.
+
+### The numbers
+
+`information-design` states the budget; `check_diagram.py` warns past it. A
+single view over **~40 nodes** or **~50 edges**, an **edge/node ratio over 1.45
+with more than 20 nodes**, or **a node with more than 8 edges** — each asks
+whether the boundary is one flow or several. A node count past **~33** (the
+largest diagram in the corpus that still read well) is a soft note. Fold a
+decision and the ratio *rises* — the ratio warning is answered by drawing a
+hub's contents or narrowing the boundary, not by folding.
 
 ## Membership — does it earn a node
 
@@ -119,23 +158,26 @@ can point at with a `file:line`. Never a concept, a phase, or a summary.
 
 Beyond that, an element earns a **standalone node** only if at least one holds:
 
-- it is **read by two or more steps**, or
-- it is **branched on** by a decision, or
+- it is a **function that transforms data** (see Altitude — one call site is
+  enough), or
+- it is **read by two or more functions**, or
 - it is **pre-existing or persistent state** the flow reads — a store, a config
-  object, a schema — as opposed to something a step in the flow produces, or
-- it is a **point where data crosses the system boundary**.
+  object, a schema, a lookup table — as opposed to something a function
+  produces, or
+- it is an **artifact that crosses the system boundary**.
 
 An artifact produced by one step and consumed by one step, with no branch and no
 second reader, **is an edge** — label the edge with the `file:line` and delete
 the node. A chain of such intermediates collapses to labelled edges.
 
 **A shared medium is drawn as its contents, not as one node.** A filesystem, a
-queue, a bus, a database that many stages read and write: draw the individual
-artifacts that pass through it, each edge running from its real producer to its
-real consumer. One node that every stage connects to is a picture of the medium,
-not of the flow, and it is always the diagram's worst hub. Draw the medium
-itself only when its own behaviour — contention, ordering, durability — is what
-the diagram is about.
+queue, a bus, a database that many functions read and write: **promote the
+individual artifacts that pass through it to nodes**, each with a producer edge
+in and a consumer edge out. Replacing the medium with direct function→function
+edges deletes the artifacts instead of drawing them — that is the opposite of
+this rule. One node that every function connects to is a picture of the medium,
+not the flow, and always the worst hub. Draw the medium itself only when its own
+behaviour — contention, ordering, durability — is what the diagram is about.
 
 A container earns its place the same way: **a subgraph is drawn iff it holds at
 least one node.** An empty namespace is a table of contents, not structure.
@@ -146,14 +188,11 @@ The failure to avoid, verbatim from the user who caught it: *"'condition' nodes
 that do not have conditions and choices and just statements."* Eight diamonds,
 none with a second branch, none a question.
 
-The opposite failure is deleting real decisions to be safe. The test is one
-sentence: **a branch earns a diamond iff it changes what the system produces on
-its main path** — a flag added to a command, the deliverable file written one
-way or another, a core helper called with different arguments. If it only picks
-which statement runs next with the same result, or aborts, or flips a peripheral
-side effect (see Altitude), it is not a diamond — it is an edge label. Branches
-that then converge on one node are normal; convergence is not a reason to drop a
-decision that passed the test.
+The opposite failure is opening a function to draw its inner `if`s. **Altitude
+settles this: a branch is a diamond only when it selects which function runs or
+whether a whole output exists — never when it only shapes the value on an edge
+that exists anyway.** A diamond's label is a question; its branches are guarded;
+they may converge on one node afterward and usually do.
 
 ## Containment — where does it sit
 
@@ -257,8 +296,11 @@ collapsed single diagram genuinely does not fit.
    real branches for conditions.
 2. Write the diagram: `%%{init}%%` directive, `flowchart LR`, `%% boundary:`
    manifest, then the body. Rewrite in place — never append a second copy.
-3. Run `check_diagram.py <file.md>`. Zero violations. Treat every `WARN:` as a
-   fault to fix too — it means the altitude is too low.
+3. Run `check_diagram.py <file.md>`. Zero violations. A `WARN:` asks whether the
+   boundary is one flow — answer it in your report: name the hub you drew as
+   contents, the entry point you scoped to, or why the diagram is legitimately
+   this size. Never answer a `WARN:` by deleting a container, a function node, a
+   constant, or a boundary artifact.
 4. Parse-check: `npx -y -p @mermaid-js/mermaid-cli mmdc -i x.mmd -o x.svg`.
    What fails locally also fails on the board.
 5. Re-verify that every `file:line` reference resolves inside its file.
@@ -273,11 +315,14 @@ Each of these happened, and in each the reader caught it, not the author.
   this.
 - **Answering "what shape" when the fault is "whether a node".** Pass-through
   files drawn as nodes; an empty namespace drawn as a box.
-- **Drawing the code, not the system.** Every `if` a diamond, every helper a
-  node, the shared filesystem one 11-edge hub. Accurate and unreadable. The
-  altitude was never set.
-- **Deleting every decision to avoid drawing a bad one.** A branch that changes
-  the deliverable on the main path is a decision node.
+- **Opening functions.** Every inner `if` a diamond, every one-line wrapper a
+  node, the shared filesystem one 11-edge hub. Accurate and unreadable. A
+  function is a black box — inputs, one verb, outputs.
+- **Folding the structure to hit the budget.** Files not drawn as containers, a
+  class flattened into its file, constants folded into edge labels, the
+  boundary artifacts shown only as arrow text. Graspable and uninformative — the
+  budget was read as a quota. A `WARN:` is answered by scoping the boundary, not
+  by thinning the frame.
 - **A node floating outside every container** with a bare range pointing at open
   space.
 - **Collapsing a component and losing its boundary crossing.** The imported
