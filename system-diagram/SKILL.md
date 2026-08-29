@@ -87,31 +87,48 @@ collapsing the component that writes to it.
 ## Altitude — the function is the atom
 
 A system diagram shows **how data moves between the parts of a system** — what
-each part takes in, the one thing it does, what it puts out. It does not show
-what happens *inside* a part.
+each part takes in and what it hands on. It does not show what happens *inside* a
+part, however much that is.
+
+**Pick the altitude from the question.** "How does this system work" → the parts
+the work passes through. "How does the pricing rule fire" → a lower diagram of
+one part, its branches opened. A system with real branching that lives inside a
+few large functions is asking for the lower diagram — say so rather than
+flattening it to three boxes and an arrow.
 
 **A function (or method, task, resource, handler) is a black box.** Its node
-carries a verb-name and a definition range. Edges in are what it reads —
-arguments, files, constants, the results of other functions. Edges out are what
-it produces — its return value, a file it writes, data it hands to the next
-function. The branches, loops, and local variables inside it are **not diagram
-elements, even when they determine the output.** `def f(a): ...; return c` is
-one node, one edge in from `a`, one edge out to `c` — whether `c` is computed
-straight through, picked by an `if`, or accumulated in a loop, the diagram is
-the same. If both branches of an inner `if` return "a `c`", draw one edge to
-`c`.
+carries a name — a verb for a function, a noun for a store or a resource — and a
+definition range. Edges in are what it reads — arguments, files, constants, the
+results of other functions. Edges out are what it produces — its return value, a
+file it writes, data it hands to the next function. The branches, loops, and
+local variables inside it are **not diagram elements, even when they determine
+the output.** `def f(a): ...; return c` is one node, one edge in from `a`, one
+edge out to `c` — whether `c` is computed straight through, picked by an `if`,
+or accumulated in a loop, the diagram is the same.
 
-**A decision node appears only when the choice is made above the function line:**
+**A branch is a decision node only when it sends the flow to a different node.**
+Two branches that land on the same node are one edge, whatever differs between
+them along the way. So:
 
-- an **orchestrator's body selects which of several functions to call** — the
-  branch routes the flow to different nodes (`if valid: process() else:
-  quarantine()`);
-- a **branch decides whether a whole output exists** — a file written or not, a
-  result registered or not, a downstream function called at all.
+- an **orchestrator's body picks which function runs next** — `if valid:
+  process() else: quarantine()` routes to two different nodes → diamond. But a
+  dispatch over many co-equal cases — a router table, a subcommand switch, a
+  registry lookup — is not a fan of diamonds and not one fat one; it is the
+  signal to scope the diagram to one flow.
+- a **branch produces a different output node** — one path writes
+  `merged.tsv`, the other writes nothing there; one registers two results, the
+  other registers one *to a different sink*. Different node out → diamond.
 
-A branch that only changes the *value* on an edge that exists either way is
-invisible. Expect few diamonds — often zero or one. Many diamonds means
-functions were opened.
+**Still not a diamond, even when a write differs:** a guard that skips a write to
+leave an artifact the flow already produced alone (`if isfile`, `if not empty`,
+`if files:`, an early `return`); a branch that decides only whether an
+already-produced artifact is *additionally* copied to a mirror or backup — even
+one in the manifest; an `assert` / `raise` / abort path. The artifact exists
+either way; only a second location, or the run surviving, differs — fold it onto
+the edge.
+
+Expect few diamonds — a handful at most. Zero, on a system with real forks,
+means the branches were read as inner detail.
 
 ### What altitude does not remove
 
@@ -120,36 +137,40 @@ structure around them. A validator `WARN:` is answered by **scoping the diagram
 to one entry point**, or by drawing a hub as its contents — never by deleting
 one of these:
 
-- **Every source file that holds a drawn node is a container**; a class that
-  holds drawn methods is a container nested in its file; a collapsed
-  out-of-boundary import is a bare rectangle, never a box.
-- **Every function or method that transforms data is a node** — including one
-  called from a single place. Only a one-line pass-through wrapper folds into
-  its caller.
-- **Every constant, table, or schema the flow reads is a node**, in its file — a
-  settings object, a lookup table, a result schema; one reader is enough. A
-  literal used once inside one function as a local detail — a regex, a format
-  string — is not.
+- **Every source namespace inside the boundary that holds a drawn node is a
+  container** — a file, a module, a package, or a class holding drawn methods
+  (nested in whatever container holds *it*; see Containment). A collapsed
+  out-of-boundary import is a bare rectangle, never a box. A subsystem inside the
+  boundary that the question does not reach is one collapsed rectangle with its
+  boundary crossings still drawn — that is the scaling mechanism, not deleting
+  nodes.
+- **Every function, method, task, or resource that transforms data is a node** —
+  including one called from a single place. Only a one-line pass-through wrapper
+  folds into its caller.
+- **Every named module-level constant, table, or schema the flow reads is a
+  node**, in its namespace — a settings object, a lookup table, a result schema;
+  however few readers it has. A literal written inline inside one function as a
+  local detail — a regex, a format string, a header list — is not.
 - **Every artifact that crosses the boundary is a node** — one that is in the
-  `%% boundary:` manifest, or that the source tests for (`isfile`, a branched
-  glob), or that a different entry point reads than wrote it. An unnamed value
-  handed straight from one function to the next is an edge.
+  `%% boundary:` manifest, or that a different entry point reads than wrote it.
+  An unnamed value handed straight from one function to the next is an edge.
 - **A data source read by two or more functions is one node** with an edge to
-  each — never inlined into two edge labels, never duplicated.
+  each — never inlined into two edge labels, never duplicated. Its degree is
+  telling you how wide the boundary is, not that it is a hub to break up.
 
 If the diagram is over budget with all of that drawn, the boundary spans more
-than one flow — scope it down. If it is *under* budget on a system that is not
-small, structure was folded — walk this list.
+than one flow — scope it to one entry point. If it is *under* budget on a system
+that is not small, structure was folded — walk this list.
 
 ### The numbers
 
-`information-design` states the budget; `check_diagram.py` warns past it. A
-single view over **~40 nodes** or **~50 edges**, an **edge/node ratio over 1.45
-with more than 20 nodes**, or **a node with more than 8 edges** — each asks
-whether the boundary is one flow or several. A node count past **~33** (the
-largest diagram in the corpus that still read well) is a soft note. Fold a
-decision and the ratio *rises* — the ratio warning is answered by drawing a
-hub's contents or narrowing the boundary, not by folding.
+`information-design` states the budget; `check_diagram.py` warns past it. One
+triple, used everywhere: **~35 nodes**, **~45 edges**, **ratio ~1.45** once past
+20 nodes; plus **any node over 8 edges**. Each asks whether the boundary is one
+flow or several — answer by scoping to one entry point or drawing a hub as its
+contents, not by folding structure. These come from two measured diagrams (one
+that read well, one called overwhelming), not a corpus — treat them as a
+direction, not a line.
 
 ## Membership — does it earn a node
 
@@ -305,7 +326,11 @@ collapsed single diagram genuinely does not fit.
    What fails locally also fails on the board.
 5. Re-verify that every `file:line` reference resolves inside its file.
 6. Invoke `information-design` over the result.
-7. Report node and edge counts, then **stop** and wait.
+7. Report: node and edge counts; **and** the count of files, classes,
+   module-level constants and functions inside the boundary — far fewer nodes
+   than that means structure was folded, walk "What altitude does not remove".
+   List the branches you folded that change what a deliverable *contains* — they
+   belong in prose beside the diagram, not in it. Then **stop** and wait.
 
 ## Failure modes
 
@@ -317,7 +342,7 @@ Each of these happened, and in each the reader caught it, not the author.
   files drawn as nodes; an empty namespace drawn as a box.
 - **Opening functions.** Every inner `if` a diamond, every one-line wrapper a
   node, the shared filesystem one 11-edge hub. Accurate and unreadable. A
-  function is a black box — inputs, one verb, outputs.
+  function is a black box — what goes in, what comes out, not the machinery.
 - **Folding the structure to hit the budget.** Files not drawn as containers, a
   class flattened into its file, constants folded into edge labels, the
   boundary artifacts shown only as arrow text. Graspable and uninformative — the

@@ -79,23 +79,24 @@ the group is wrong. Rewriting the caption to fit hides the fault.
 ## Node graphs: a complexity budget
 
 A node graph has a size past which it stops informing and starts intimidating.
-The numbers come from a corpus of such diagrams — the ones that read well sit at
-or under them, the one a reader called "anxiety, not clarity" broke three at
-once. A budget is a **band**: a diagram well under it, of a system that is not
-small, has folded its structure rather than its detail. Check both directions.
+The numbers below come from two measured diagrams — one that read well, one a
+reader called "anxiety, not clarity" — not a corpus. A budget is a **band**: a
+diagram well under it, of a system that is not small, has folded its structure
+rather than its detail. Check both directions.
 
 - **Glance budget: ~20 nodes, ~30 edges** for a graph someone takes in at once.
-- **Working budget: ~35 nodes, ~45 edges** for a diagram of one flow or one
-  package that a reader studies. Past that, the boundary spans more than one
-  flow — scope it down; do not delete containers or nodes to fit.
+- **Working budget: ~35 nodes, ~45 edges** for a diagram of one flow that a
+  reader studies. Past that, the boundary spans more than one flow — scope it to
+  one entry point; do not delete containers or nodes to fit.
 - **Edge/node ratio.** Past ~1.45 once there are more than 20 nodes, the graph
   is over-connected: a hub to draw as its contents, or a boundary wider than one
-  flow. Folding a decision *raises* this ratio, so folding is not the fix.
-- **Max degree.** A node with more than ~8 edges is a bus. Draw the individual
-  things that pass through it as nodes.
-- **Decision density.** Many diamonds means functions were opened to draw their
-  inner branches. A decision is only a choice between functions or about whether
-  a whole output exists.
+  flow.
+- **Max degree.** A node with more than ~8 edges read and written by many is a
+  medium — draw the artifacts through it as nodes. A source or sink that
+  connected is telling you the boundary is too wide, not that it is a hub.
+- **Decision density.** Many diamonds means guards were drawn as decisions. A
+  decision sends the flow to a different node; a guard that only skips a write
+  or aborts is an edge.
 - **Label reach.** An auto-layout engine puts an edge label at the edge's
   midpoint; the longer the edge, the further the label from both endpoints. A
   label that is a full sentence on an edge spanning the diagram is unreadable in

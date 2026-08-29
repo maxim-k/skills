@@ -219,10 +219,10 @@ def check(block: str, name: str) -> list:
 def advisories(block: str, name: str) -> list:
     """Warn when a diagram is drawn below system altitude.
 
-    Not violations — a genuinely large system may need every node. But each of
-    these says "look at the altitude", and in a corpus of diagrams the ones that
-    read well sit under every threshold while the one a reader called
-    overwhelming broke three at once.
+    Not violations — a genuinely large system may need every node. But each says
+    "look at the boundary": is it one flow, or several? The numbers come from two
+    measured diagrams, one that read well and one a reader called overwhelming —
+    a direction, not a corpus.
 
     :param block: The body of a fenced mermaid block.
     :param name: Name used in the report.
@@ -233,41 +233,40 @@ def advisories(block: str, name: str) -> list:
     n, e = len(kinds), len(edges)
     if n == 0:
         return []
-    deg = Counter()
+    into, out = Counter(), Counter()
     for src, _, dst in edges:
-        deg[src] += 1
-        deg[dst] += 1
+        out[src] += 1
+        into[dst] += 1
+    deg = Counter({nid: into[nid] + out[nid] for nid in kinds})
     diamonds = sum(1 for k in kinds.values() if k == "diamond")
 
-    # thresholds: the eval corpus has one diagram that read well (33 nodes,
-    # 42 edges, ratio 1.27, max degree 8) and one called overwhelming (35, 57,
-    # 1.63, 9). node count barely separates them; edge density does. so the
-    # node checks are soft and the density checks carry the weight.
+    # thresholds from two measured diagrams (one that read well: 33n/42e/1.27/
+    # deg 8; one called overwhelming: 35n/57e/1.63/deg 9), not a corpus. node
+    # count barely separates them; edge density does. a direction, not a line.
     warn = []
-    if n > 40:
-        warn.append(f"{name}: {n} nodes — this is usually a boundary spanning "
-                    f"more than one flow, not detail to thin. Scope to one entry "
-                    f"point before deleting containers, nodes, or constants")
-    elif n > 33:
-        warn.append(f"{name}: {n} nodes — at or past the size of the largest "
-                    f"diagram that still read well; check every node earns its "
-                    f"place by the question")
+    if n > 35:
+        warn.append(f"{name}: {n} nodes — at the size where clarity starts to "
+                    f"cost. Is the boundary one flow? Scope to one entry point "
+                    f"before deleting containers, nodes, or constants")
     if n > 20 and e / n > 1.45:
         warn.append(f"{name}: {e} edges over {n} nodes (ratio {e / n:.2f}) — "
                     f"over-connected: a hub to draw as its contents, or a "
-                    f"boundary wider than one flow. Folding a decision raises "
-                    f"this ratio; that is not the fix")
-    if e > 50:
+                    f"boundary wider than one flow")
+    if e > 45:
         warn.append(f"{name}: {e} edges — past the working budget; draw a shared "
                     f"medium as its artifacts and scope the boundary to one flow")
-    buses = sorted(nid for nid, d in deg.items() if d > 8)
-    for nid in buses:
-        warn.append(f"{name}: {nid} has {deg[nid]} edges — a bus; draw the "
-                    f"things that pass through it as nodes, not one node")
+    for nid in sorted(nid for nid, d in deg.items() if d > 8):
+        if into[nid] >= 2 and out[nid] >= 2:
+            warn.append(f"{name}: {nid} has {deg[nid]} edges, read and written by "
+                        f"many — a medium; draw the artifacts through it as nodes")
+        else:
+            warn.append(f"{name}: {nid} has {deg[nid]} edges — a source or sink "
+                        f"this connected means the boundary spans more than one "
+                        f"flow; scope it down, do not split the node")
     if diamonds > n / 6:
-        warn.append(f"{name}: {diamonds} diamonds over {n} nodes — functions "
-                    f"were opened to draw their inner branches; a decision is a "
-                    f"choice between functions or about a whole output")
+        warn.append(f"{name}: {diamonds} diamonds over {n} nodes — a guard was "
+                    f"likely drawn as a decision. A decision sends the flow to a "
+                    f"different node; a guard that skips a write is an edge")
     for src, lbl, dst in edges:
         if len(lbl) > 60:
             warn.append(f"{name}: edge {src}->{dst} label is {len(lbl)} chars — "
@@ -310,6 +309,18 @@ def _selfcheck() -> int:
 
     empty = good + '\nsubgraph g["empty.py"]\nend'
     assert any("holds no node" in m for m in check(empty, "t")), "empty container"
+
+    # a single 1-in/1-out flag outside the manifest is a straight-through node
+    passthru = (
+        'flowchart LR\n%% boundary: sources=Api sinks=Store\n'
+        'Api{{"api"}}\nStore{{"store"}}\n'
+        'subgraph f["file.py"]\n  act(["do_thing<br/>L1-9"])\n'
+        '  more(["more<br/>L10"])\nend\n'
+        'Api -->|"reads"| act\n'
+        'act -->|"hands scratch.tsv"| scr[/"scratch.tsv"/]\n'
+        'scr -->|"reads"| more\nmore -->|"out"| Store'
+    )
+    assert any("straight-through" in m for m in check(passthru, "t")), "pass-through flag"
 
     floated = good.replace('  dec{', 'end\ndec{\n').replace('\nend\nAoops', '', 0)
     floated = (
@@ -355,7 +366,7 @@ def _selfcheck() -> int:
         f'  n{i}(["fn{i}<br/>L{i}"])\n' for i in range(45)) + 'end\n'
     big += 'A -->|"in"| n0\n' + "".join(
         f'n{i} -->|"step"| n{i + 1}\n' for i in range(44)) + 'n44 -->|"out"| B'
-    assert any("more than one flow" in m for m in advisories(big, "t")), "budget"
+    assert any("clarity starts to cost" in m for m in advisories(big, "t")), "budget"
 
     # a bus: every node over 8 edges is reported, not just the worst
     bus = 'flowchart LR\n%% boundary: sources=A sinks=B\nA{{"a"}}\nB{{"b"}}\n'
