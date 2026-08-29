@@ -112,11 +112,15 @@ when the paths land on one node afterward. What tells you it is real: the two
 out-edges carry different verbs.
 
 - **a processing mode** — matched vs unmatched, full vs incremental, dry-run vs
-  live. Each path is a different *kind* of run, even if both emit "a command".
-- **a routing choice** — which downstream function is called, which of several
-  inputs is used. A dispatch over many co-equal cases (a router table, a
-  subcommand switch, a registry lookup), though, is not a fan of diamonds and
-  not one fat one — it is the signal to scope the diagram to one flow.
+  live, a QC or filter step applied or skipped. Each path is a different *kind*
+  of run. Calling one function with an argument that turns a processing step on
+  or off (`check_purity=False`, `dry_run=True`) is a mode difference — not a
+  value difference.
+- **a routing choice** — which downstream function is called, whether it is
+  called at all, which of several inputs is used. A dispatch over many co-equal
+  cases (a router table, a subcommand switch, a registry lookup), though, is not
+  a fan of diamonds and not one fat one — it is the signal to scope the diagram
+  to one flow.
 - **the output composition** — one result registered or two, a rollup file
   written or the existing files globbed instead, a different sink.
 
@@ -124,9 +128,10 @@ out-edges carry different verbs.
 or falls back to a default (`if isfile`, `if not empty`, `if files:`, `assert`,
 `raise`, an early `return`); a branch that decides only whether an
 already-produced artifact is *additionally* copied to a mirror or backup — even
-one in the manifest; a branch that sets one value inside an output produced
-either way (`if dmp_id: result["url"] = ...`). If the two paths produce the same
-thing the same way and only a value differs, it is invisible.
+one in the manifest; a branch that sets one field in an output produced either
+way (`if dmp_id: result["url"] = ...` — a dict entry, a flag in a string, not an
+argument that changes what a called step does). If the two paths produce the
+same thing the same way and only a value differs, it is invisible.
 
 Expect a handful of diamonds — the decisions you would name to a new teammate.
 Zero, on a system with real forks, means they were read as inner detail; a
@@ -167,7 +172,7 @@ that is not small, structure was folded — walk this list.
 ### The numbers
 
 `information-design` states the budget; `check_diagram.py` warns past it. One
-triple, used everywhere: **~35 nodes**, **~45 edges**, **ratio ~1.45** once past
+triple, used everywhere: **~35 nodes**, **~48 edges**, **ratio ~1.45** once past
 20 nodes; plus **any node over 8 edges**. Each asks whether the boundary is one
 flow or several — answer by scoping to one entry point or drawing a hub as its
 contents, not by folding structure. These come from two measured diagrams (one

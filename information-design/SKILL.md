@@ -85,7 +85,7 @@ diagram well under it, of a system that is not small, has folded its structure
 rather than its detail. Check both directions.
 
 - **Glance budget: ~20 nodes, ~30 edges** for a graph someone takes in at once.
-- **Working budget: ~35 nodes, ~45 edges** for a diagram of one flow that a
+- **Working budget: ~35 nodes, ~48 edges** for a diagram of one flow that a
   reader studies. Past that, the boundary spans more than one flow — scope it to
   one entry point; do not delete containers or nodes to fit.
 - **Edge/node ratio.** Past ~1.45 once there are more than 20 nodes, the graph

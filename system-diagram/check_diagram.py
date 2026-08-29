@@ -252,7 +252,7 @@ def advisories(block: str, name: str) -> list:
         warn.append(f"{name}: {e} edges over {n} nodes (ratio {e / n:.2f}) — "
                     f"over-connected: a hub to draw as its contents, or a "
                     f"boundary wider than one flow")
-    if e > 45:
+    if e > 48:
         warn.append(f"{name}: {e} edges — past the working budget; draw a shared "
                     f"medium as its artifacts and scope the boundary to one flow")
     for nid in sorted(nid for nid, d in deg.items() if d > 8):
