@@ -14,6 +14,7 @@ up from `~/.claude/skills`.
 | [`jupyter-notebook`](jupyter-notebook/SKILL.md) | Analytical notebook standard: plot style, small multiples, output-noise cleanup, two-pass dev-then-prod authoring. |
 | [`python-style`](python-style/SKILL.md) | Minimalist Python: explicit typing, PEP 8 naming, PEP 257 docstrings in reST sized to what the signature does not say, plain language, actionable error handling, never log-and-raise. |
 | [`system-diagram`](system-diagram/SKILL.md) | Mermaid diagrams of real systems: a node grammar borrowed from UML, a validator that enforces it, one hop per turn. |
+| [`toil-to-nextflow`](toil-to-nextflow/SKILL.md) | Convert a Toil pipeline to a modern Nextflow DSL2 pipeline: audit the orchestration boilerplate, extract the logic that survives, design the processes and DAG, modernise the language, rewire the caller. |
 | [`vale-google-style`](vale-google-style/SKILL.md) | Lint Markdown prose against the Google developer documentation style guide with Vale, then fix the findings. |
 
 ## Install

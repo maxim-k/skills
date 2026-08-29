@@ -11,6 +11,7 @@ a scope here when you add a skill.
 - `jupyter-notebook`: the analytical notebook standard, plots, and authoring workflow.
 - `python-style`: the Python coding standard, architecture through logging.
 - `system-diagram`: the diagram node grammar, its validator, and the per-hop workflow.
+- `toil-to-nextflow`: the Toil-to-Nextflow conversion workflow and its reference files.
 - `vale-google-style`: the Vale setup and the Markdown prose lint loop.
 - `readme`: the repository README and its skill index table.
 - `repo`: repository-level files that are not a skill, such as this vocabulary and any tooling config.

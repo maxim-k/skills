@@ -94,9 +94,9 @@ rather than its detail. Check both directions.
 - **Max degree.** A node with more than ~8 edges read and written by many is a
   medium — draw the artifacts through it as nodes. A source or sink that
   connected is telling you the boundary is too wide, not that it is a hub.
-- **Decision density.** Many diamonds means guards were drawn as decisions. A
-  decision sends the flow to a different node; a guard that only skips a write
-  or aborts is an edge.
+- **Decision density.** A dozen diamonds means guards were drawn as decisions. A
+  decision's two paths do different work or produce different things; a guard
+  that skips, aborts, or defaults is an edge. A handful is right.
 - **Label reach.** An auto-layout engine puts an edge label at the edge's
   midpoint; the longer the edge, the further the label from both endpoints. A
   label that is a full sentence on an edge spanning the diagram is unreadable in

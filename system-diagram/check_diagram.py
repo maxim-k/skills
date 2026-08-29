@@ -264,9 +264,10 @@ def advisories(block: str, name: str) -> list:
                         f"this connected means the boundary spans more than one "
                         f"flow; scope it down, do not split the node")
     if diamonds > n / 6:
-        warn.append(f"{name}: {diamonds} diamonds over {n} nodes — a guard was "
-                    f"likely drawn as a decision. A decision sends the flow to a "
-                    f"different node; a guard that skips a write is an edge")
+        warn.append(f"{name}: {diamonds} diamonds over {n} nodes — guards were "
+                    f"likely drawn as decisions. A decision's two paths do "
+                    f"different work or put out different things; a guard that "
+                    f"skips, aborts, or defaults is an edge")
     for src, lbl, dst in edges:
         if len(lbl) > 60:
             warn.append(f"{name}: edge {src}->{dst} label is {len(lbl)} chars — "

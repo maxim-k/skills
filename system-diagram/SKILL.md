@@ -87,8 +87,9 @@ collapsing the component that writes to it.
 ## Altitude — the function is the atom
 
 A system diagram shows **how data moves between the parts of a system** — what
-each part takes in and what it hands on. It does not show what happens *inside* a
-part, however much that is.
+each part takes in, what it hands on, and the decisions that route or reshape the
+data on the way. It does not show the *mechanism* inside a part — the loops, the
+bookkeeping, the arithmetic — however much of that there is.
 
 **Pick the altitude from the question.** "How does this system work" → the parts
 the work passes through. "How does the pricing rule fire" → a lower diagram of
@@ -100,35 +101,36 @@ flattening it to three boxes and an arrow.
 carries a name — a verb for a function, a noun for a store or a resource — and a
 definition range. Edges in are what it reads — arguments, files, constants, the
 results of other functions. Edges out are what it produces — its return value, a
-file it writes, data it hands to the next function. The branches, loops, and
-local variables inside it are **not diagram elements, even when they determine
-the output.** `def f(a): ...; return c` is one node, one edge in from `a`, one
-edge out to `c` — whether `c` is computed straight through, picked by an `if`,
-or accumulated in a loop, the diagram is the same.
+file it writes, data it hands to the next function. The loops, the local
+variables, and the arithmetic inside it are not diagram elements. `def f(a):
+...; return c` where `c` is `c + b` for some internally-computed `b` is one node,
+one edge to `c` — only a value changed.
 
-**A branch is a decision node only when it sends the flow to a different node.**
-Two branches that land on the same node are one edge, whatever differs between
-them along the way. So:
+**A branch is a decision node when its two paths do different work on the data or
+put out different things** — even a branch buried inside a function, and even
+when the paths land on one node afterward. What tells you it is real: the two
+out-edges carry different verbs.
 
-- an **orchestrator's body picks which function runs next** — `if valid:
-  process() else: quarantine()` routes to two different nodes → diamond. But a
-  dispatch over many co-equal cases — a router table, a subcommand switch, a
-  registry lookup — is not a fan of diamonds and not one fat one; it is the
-  signal to scope the diagram to one flow.
-- a **branch produces a different output node** — one path writes
-  `merged.tsv`, the other writes nothing there; one registers two results, the
-  other registers one *to a different sink*. Different node out → diamond.
+- **a processing mode** — matched vs unmatched, full vs incremental, dry-run vs
+  live. Each path is a different *kind* of run, even if both emit "a command".
+- **a routing choice** — which downstream function is called, which of several
+  inputs is used. A dispatch over many co-equal cases (a router table, a
+  subcommand switch, a registry lookup), though, is not a fan of diamonds and
+  not one fat one — it is the signal to scope the diagram to one flow.
+- **the output composition** — one result registered or two, a rollup file
+  written or the existing files globbed instead, a different sink.
 
-**Still not a diamond, even when a write differs:** a guard that skips a write to
-leave an artifact the flow already produced alone (`if isfile`, `if not empty`,
-`if files:`, an early `return`); a branch that decides only whether an
+**Not a decision — fold it onto the edge:** a guard that skips a write, aborts,
+or falls back to a default (`if isfile`, `if not empty`, `if files:`, `assert`,
+`raise`, an early `return`); a branch that decides only whether an
 already-produced artifact is *additionally* copied to a mirror or backup — even
-one in the manifest; an `assert` / `raise` / abort path. The artifact exists
-either way; only a second location, or the run surviving, differs — fold it onto
-the edge.
+one in the manifest; a branch that sets one value inside an output produced
+either way (`if dmp_id: result["url"] = ...`). If the two paths produce the same
+thing the same way and only a value differs, it is invisible.
 
-Expect few diamonds — a handful at most. Zero, on a system with real forks,
-means the branches were read as inner detail.
+Expect a handful of diamonds — the decisions you would name to a new teammate.
+Zero, on a system with real forks, means they were read as inner detail; a
+dozen means guards were drawn as decisions.
 
 ### What altitude does not remove
 
@@ -209,11 +211,13 @@ The failure to avoid, verbatim from the user who caught it: *"'condition' nodes
 that do not have conditions and choices and just statements."* Eight diamonds,
 none with a second branch, none a question.
 
-The opposite failure is opening a function to draw its inner `if`s. **Altitude
-settles this: a branch is a diamond only when it selects which function runs or
-whether a whole output exists — never when it only shapes the value on an edge
-that exists anyway.** A diamond's label is a question; its branches are guarded;
-they may converge on one node afterward and usually do.
+The opposite failure is folding a real fork because it lives inside a function.
+**Altitude settles both: a branch is a diamond when its two paths do different
+work on the data or produce different things — a mode, a route, a different set
+of outputs — wherever the `if` sits. It is not a diamond when it guards, aborts,
+defaults, or only sets a value inside an output produced anyway.** A diamond's
+label is a question; its branches are guarded; they may converge on one node
+afterward and often do.
 
 ## Containment — where does it sit
 
@@ -340,9 +344,14 @@ Each of these happened, and in each the reader caught it, not the author.
   this.
 - **Answering "what shape" when the fault is "whether a node".** Pass-through
   files drawn as nodes; an empty namespace drawn as a box.
-- **Opening functions.** Every inner `if` a diamond, every one-line wrapper a
-  node, the shared filesystem one 11-edge hub. Accurate and unreadable. A
-  function is a black box — what goes in, what comes out, not the machinery.
+- **Opening functions.** Every guard and housekeeping `if` a diamond, every
+  one-line wrapper a node, the shared filesystem one 11-edge hub. Accurate and
+  unreadable. Draw the real forks — the mode, the route, the different outputs —
+  and leave the rest inside.
+- **Folding the real forks** because they sit inside a function. A branch that
+  switches the mode of a run, routes to a different downstream, or changes which
+  outputs are produced is a decision a teammate needs named — a diamond,
+  wherever the `if` lives.
 - **Folding the structure to hit the budget.** Files not drawn as containers, a
   class flattened into its file, constants folded into edge labels, the
   boundary artifacts shown only as arrow text. Graspable and uninformative — the
