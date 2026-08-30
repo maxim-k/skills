@@ -58,7 +58,9 @@ leaves the scroll area lying about how much there is.
 **One fact, one channel.** The worst offender found so far encoded node kind
 three times: the shape, a `fn:` or `data:` prefix repeated across 36 labels,
 and seven fill colors. Shape already carried it. The prefixes and five of the
-colors went.
+colors went. The same trap with *origin*: a fill for "our code / external /
+boundary" is a third channel when the nodes already sit inside or outside the
+containers that say exactly that. On a node-graph, default to no fill.
 
 **Delete what is not information.** A container labelled with the folder
 already named in the title. Markers reading `hop 3` that describe the working

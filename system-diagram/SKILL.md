@@ -295,14 +295,23 @@ flow**, not to fan out from the node.
   it sits inside its file's container.
 - An edge carries the `file:line` of the statement doing what it claims, because
   edges cross files.
-- Color encodes exactly one thing, stated in the legend. A second visual channel
-  means invoking `information-design` first, not deciding by eye.
+- **Prefer no fill colour.** Containment already separates the system from the
+  outside, and shape carries kind — a fill that repeats either is a second
+  channel on one fact and `information-design` strikes it. Use `theme: neutral`
+  so the renderer's own default palette does not sneak a colour in. Add a fill
+  only for something neither shape nor containment can carry, stated in the
+  legend.
 - Default to `flowchart LR` — the long-axis rule from `information-design`: a
   landscape surface fits more before it scrolls. Use `TD` only when the system
   is a hierarchy or a dependency tree rather than a flow, and say why.
-- Set a translucent edge-label background so a label does not punch a hole in
-  the line it annotates. First line of the block:
-  `%%{init: {'themeVariables': {'edgeLabelBackground': 'rgba(255,255,255,0.75)'}, 'flowchart': {'curve': 'basis'}}}%%`
+- First line of the block:
+  `%%{init: {'theme': 'neutral', 'themeVariables': {'edgeLabelBackground': 'rgba(255,255,255,0.72)'}, 'flowchart': {'curve': 'basis'}}}%%`
+  — a translucent label background so a label does not punch a hole in its line.
+  This renders under `mmdc`; **Miro's native diagram widget ignores it and the
+  theme**, re-drawing labels opaque in its own palette. So keep every edge label
+  short enough to sit clear of the arrows even opaque, and when the exact look
+  matters, render with `mmdc` and drop that SVG on the board as an image rather
+  than a live diagram widget.
 
 ## The visual half is a separate skill
 
@@ -383,7 +392,11 @@ Confirmed by import, not assumed:
 
 - Flowcharts only. Miro rebuilds the diagram as native shapes with its own
   layout, so orientation hints are advisory.
-- Subgraphs, colors, and `<br/>` breaks survive the import.
+- Subgraphs and `<br/>` breaks survive the import. `classDef` fills survive but
+  the `%%{init}%%` `theme` and `themeVariables` do **not** — Miro re-draws every
+  node and every edge label in its own opaque palette. A diagram that leans on a
+  chosen theme or a translucent label background looks different on Miro; the
+  faithful render is the `mmdc` SVG, added to the board as an image.
 - There is an unpublished shape ceiling. Miro's fix is switching to free-form,
   which **permanently breaks** the sync with the code panel. Keep each hop lean
   and warn when a diagram approaches it.
@@ -391,6 +404,3 @@ Confirmed by import, not assumed:
   into one row with invisible `~~~` links.
 - A node id that is a Mermaid reserved word (`click`, `end`, `graph`, …) breaks
   the parse. Suffix it (`clickLib`).
-- The `%%{init}%%` `themeVariables` survive a `mmdc` render but Miro applies its
-  own theme on import, so keep the diagram legible without the translucent-label
-  trick too — mainly by having few enough edges that no label is stranded.
