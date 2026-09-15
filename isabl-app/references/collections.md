@@ -24,6 +24,7 @@ isabl_apps/apps/my_new_app/
 ├── apps.py              # the AbstractApplication subclasses
 ├── constants.py         # APPLICATION_RESULTS, APPLICATION_DESCRIPTION
 ├── utils.py             # non-trivial helpers (optional)
+├── iris.config          # HPC profile: singularity, slurm, per-process resources
 ├── docker/Dockerfile    # dev container, built from this dir
 └── SCOPE.md             # commit scopes for this app
 ```
@@ -68,12 +69,30 @@ Pick the one matching the tool:
 
 | Helper | Module | For |
 |---|---|---|
+| `create_script(cmd, outdir=...)` | `isabl_apps/utils.py` | every app — writes `<outdir>/.command.sh`, returns its path |
 | `get_docker_command(image, entrypoint)` | `isabl_apps/utils.py` | plain container calls |
 | `build_toil_command(...)` | `isabl_apps/toil.py` | toil pipelines |
 | `create_nextflow_script(...)` | `isabl_apps/nextflow/utils.py` | nf-core workflows |
 
+`create_script` is the default: `get_command` builds a formatted command, writes
+it, and returns `bash <outfile>`. `create_nextflow_script` does the same job for
+nf-core workflows but writes `.script.sh` and returns the `bash` line itself.
+
 `nextflow/results.py` holds `NEXTFLOW_RESULTS` to spread into
-`application_results`.
+`application_results`. Its `app_script` key points at `.script.sh`, which is the
+`create_nextflow_script` filename. An app that calls `create_script` declares
+`app_command` against `.command.sh` instead. Never both.
+
+## HPC config
+
+Per-app, in `apps/<tool>/iris.config`, reached through
+`application_settings["nf_config"]` and one line in `settings.py`. That file is
+the knob — see the `isabl-app` skill, Step 4.
+
+`isabl_apps/nextflow/base.config` also carries an `iris` profile, selected with
+`nf_profile = "iris"`. It exists, several apps use it (`sarek`), and it is not
+the mandated path for a new app: a per-app file keeps the queue and the
+per-process resources in one readable place next to the code they belong to.
 
 ## Containers: dev vs HPC
 
@@ -230,6 +249,16 @@ Singularity inline, three styles — all current:
    `apps/wgs/apps.py`).
 
 `.sif` files live under `/data1/shahs3/isabl_data_lake/software/sifs/<family>/`.
+
+## HPC config (shahlab)
+
+Same idea, three differences. There is no `settings.py` patch layer, so the
+app names the config path directly. The config file sits next to
+`_<pipeline>.py`, not in a per-app folder (`apps/mondrian_nf/nextflow.config` is
+the worked example). The base is `shahlab_apps/utils/nextflow.base.config`, and
+`shahlab_apps/utils/results.py` holds this repo's own `NEXTFLOW_RESULTS`, whose
+`app_script` pattern is `script.sh` — **no leading dot**. The isabl_apps paths
+and filenames do not carry across.
 
 ## Tests
 

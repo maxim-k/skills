@@ -154,6 +154,115 @@ The dominant idiom in both repos: an abstract base carrying `NAME`, `VERSION`,
 set only `ASSEMBLY` and `SPECIES`. Results and descriptions go in a sibling
 `constants.py`; non-trivial helpers in a sibling `utils.py`.
 
+### HPC settings live in `iris.config`
+
+For a Nextflow-based app, Singularity, the executor, the queue and the
+per-process resources go in an `iris.config` committed next to `apps.py`. Never
+inline in `get_command`. Never spread across `application_settings`. Copy
+`apps/germline_svs/iris.config` and edit it:
+
+```groovy
+singularity {
+    enabled = true
+    autoMounts = true
+    cacheDir = '/data1/papaemme/isabl/opt/singularity'
+}
+
+process {
+    executor = 'slurm'
+    queue = 'componc_cpu'
+    errorStrategy = { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
+    maxRetries = 3
+
+    withName: 'manta' {
+        cpus = 32
+        time = '24h'
+        memory = { 64.GB * task.attempt }
+    }
+}
+```
+
+Wire it as `germline_svs` does — a placeholder in the class:
+
+```python
+application_settings = {
+    "nf_config": None,      # -> apps/<app>/iris.config, set in settings.py
+    "nf_profile": None,     # only if iris.config declares named profiles
+    ...
+}
+```
+
+and one line in `isabl_apps/settings.py`:
+
+```python
+"nf_config": str(ROOT / "apps" / "my_new_app" / "iris.config"),
+```
+
+That `settings.py` line is the one deliberate exception to "settings wiring is
+out of scope" (`references/collections.md`). It is one line, and without it the
+app runs on HPC with no config at all.
+
+Scope: this rule is for Nextflow apps. A plain `singularity exec` app keeps its
+`.sif` path in `application_settings` and its resources in
+`application_settings["resources"]`.
+
+### `get_command` returns `bash <script>`, never the command
+
+A long command dumped into standard output is unreadable and unusable. Build the
+command formatted — one flag per line, `\\` continuations — then write it out:
+
+```python
+from isabl_apps.utils import create_script
+
+def get_command(self, analysis, inputs, settings):
+    outdir = analysis["storage_url"]
+    command = f"""
+        nextflow run {settings.nf_tool} \\
+            -config {settings.nf_config} \\
+            --input {inputs["samples_tsv"]} \\
+            --outDir {outdir}
+    """
+    outfile = create_script(command, outdir=outdir)
+    return f"bash {outfile}"
+```
+
+**Write `\\`, not `\`.** Inside a triple-quoted string a lone backslash is a
+Python line continuation: it eats the newline and the script collapses back into
+the one long line you were trying to avoid. `\\` is an escaped backslash, which
+is the shell continuation you want. `apps/germline_svs/apps.py` gets this wrong
+— do not copy its `get_command` verbatim.
+
+`create_script` defaults to `<outdir>/.command.sh`. Surface that file as a
+result, so the command is readable from the UI:
+
+```python
+application_results = {
+    "app_command": {
+        "frontend_type": "ansi",
+        "description": "Analysis command to run the workflow.",
+        "verbose_name": "Workflow Command",
+        "optional": True,
+        "order": 1,
+    },
+    ...
+}
+
+def get_analysis_results(self, analysis):
+    outdir = Path(analysis.storage_url)
+    results = {"app_command": str(outdir / ".command.sh"), ...}
+```
+
+Three cautions:
+
+- An app with no `get_analysis_results` resolves the key with
+  `"pattern": ".command.sh"` instead. Do one or the other, never both.
+- `create_nextflow_script` (`isabl_apps/nextflow/utils.py`) already writes the
+  script — to `.script.sh` — and returns `bash <path>`, and `NEXTFLOW_RESULTS`
+  already declares `app_script` for it. Keep that key. Do not add `app_command`
+  next to it.
+- `command_script`, `command_log` and `command_err` are the framework's own
+  injected keys. The name is close; they are unrelated. Never declare them.
+
 Apply the `python-style` skill. `apps/telomerehunter2/apps.py` on the
 `telomerehunter2` branch is the current best template — type hints throughout,
 reST docstrings, one concern per method.
@@ -209,7 +318,13 @@ Every item below fails silently or only on the cluster. Run them all.
 10. **Nothing hits the API at class-definition time.** It slows every `isabl`
     invocation and can kill CLI registration. Wrap `dependencies_results` in
     `cached_property` when it instantiates another app.
-11. **Lint.** black, `pylint --rcfile=.pylintrc`, `pydocstyle --config=.pydocstylerc`,
+11. **`app_command` resolves like any other key.** It must carry a
+    `pattern` or be returned by `get_analysis_results`. Same `app.py:1245`
+    trap as every other result, and it fires on the cluster, not at submit.
+12. **No HPC config leaked into the command.** For a Nextflow app, grep your
+    `get_command` for `executor`, `queue`, `singularity` and `slurm`. Any hit
+    belongs in `iris.config`.
+13. **Lint.** black, `pylint --rcfile=.pylintrc`, `pydocstyle --config=.pydocstylerc`,
     isort with `force_single_line=true` and `from_first=true`.
 
 ## Step 7 — Hand off
@@ -226,3 +341,7 @@ List what is deliberately outstanding:
   per-app branch in `slurm.py`/`lsf.py` is not. Without either, the app gets
   1 GB and 1 core, which will fail on real data.
 - `INSTALLED_APPLICATIONS` — the app is invisible to `isabl` until added.
+- The `nf_config` line in `isabl_apps/settings.py`, if you did not add it. The
+  app has no HPC config without it.
+- `iris.config` targets Iris only. Another client (`juno`, `ess`, `aws`) needs
+  its own file and its own `settings.py` line.

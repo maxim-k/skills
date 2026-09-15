@@ -144,6 +144,10 @@ can kill CLI registration.
   Declaring it costs one line and is the difference between sane resources and
   the 1 GB / 1 core default that fails on real data.
 
+  For a Nextflow app this sizes the **head job** only — the Nextflow driver,
+  which wants few cores and a long runtime. The per-task resources live in the
+  app's `iris.config`. You need both; they are two different things.
+
 ### CLI
 
 - `cli_help` — `str`.
@@ -280,6 +284,7 @@ your app.
 ## Minimal correct app
 
 ```python
+from isabl_apps.utils import create_script
 from isabl_cli import AbstractApplication
 from isabl_cli import options
 
@@ -300,6 +305,14 @@ class MyApp(AbstractApplication):
     }
 
     application_results = {
+        "app_command": {
+            "description": "Analysis command to run the workflow.",
+            "verbose_name": "Workflow Command",
+            "frontend_type": "ansi",
+            "pattern": ".command.sh",        # auto-resolved
+            "optional": True,
+            "order": 1,
+        },
         "vcf": {
             "description": "Somatic variants called against the matched normal.",
             "verbose_name": "Somatic VCF",
@@ -323,12 +336,16 @@ class MyApp(AbstractApplication):
         }
 
     def get_command(self, analysis, inputs, settings):
-        return (
-            f"singularity exec --bind /data1 {settings.my_app_sif} tool "
-            f"--ref {settings.reference} --threads {settings.threads} "
-            f"--tumor {inputs['tumor_bam']} --normal {inputs['normal_bam']} "
-            f"--out {analysis['storage_url']}"
-        )
+        outdir = analysis["storage_url"]
+        command = f"""
+            singularity exec --bind /data1 {settings.my_app_sif} tool \\
+                --ref {settings.reference} \\
+                --threads {settings.threads} \\
+                --tumor {inputs["tumor_bam"]} \\
+                --normal {inputs["normal_bam"]} \\
+                --out {outdir}
+        """
+        return f"bash {create_script(command, outdir=outdir)}"
 
 
 class MyAppGRCh38(MyApp):
@@ -339,5 +356,11 @@ class MyAppGRCh38(MyApp):
 Every result here carries a `pattern`, so `get_analysis_results` can be omitted
 entirely. Declare a key without one and you must return it.
 
-For a long or multi-step command, write a script into the analysis directory and
-return `bash -e .script.sh` — the universal idiom in both collections.
+`get_command` writes the command to a script and returns `bash <script>`. This
+is the default for every app, not a fallback for long commands: a command
+returned inline lands in the job's standard output as one unreadable line.
+`isabl_apps.utils.create_script` writes `<outdir>/.command.sh`;
+`isabl_apps.nextflow.utils.create_nextflow_script` writes `.script.sh` and
+returns the `bash` line itself. In shahlab_apps the same idiom writes
+`script.sh` by hand. Surface whichever file you wrote as a result — `app_command`
+for `.command.sh`, or the `app_script` key already in `NEXTFLOW_RESULTS`.
