@@ -4,10 +4,11 @@ description: >
   Personal Python coding standard: minimalist architecture, explicit typing,
   PEP 8 naming, PEP 257 docstrings in reST, ASD-STE100 plain language,
   why-not-what comments, actionable error handling, pragmatic logging, never
-  log-and-raise. Use whenever writing, editing, or reviewing Python code — new
-  modules, functions, CLI tools, adding try/except blocks, adding logging, or
-  when the user says "python style", "clean python", "lean code", "idiomatic
-  python".
+  log-and-raise, and checking the diff with uv, ruff and ty. Use whenever
+  writing, editing, or reviewing Python code — new modules, functions, CLI
+  tools, adding try/except blocks, adding logging, or when the user says
+  "python style", "clean python", "lean code", "idiomatic python", "run ruff",
+  or "type check this".
 ---
 
 Apply this standard to Python code you write or edit. It governs architecture,
@@ -72,6 +73,32 @@ split, not the package list.
 
 The `dockerfile-style` skill maps these groups onto image targets: `prod`
 syncs with `--no-dev`, `dev` syncs the `dev` group on top.
+
+## Checking what you wrote
+
+`uv` is already the dependency manager, so check with its toolchain:
+
+```bash
+uvx ruff format <files you changed>
+uvx ruff check --fix <files you changed>
+uvx ty check <files you changed>
+```
+
+`uvx` runs each tool from a throwaway environment. It installs nothing into the
+project and adds nothing to `pyproject.toml`.
+
+- **Pass the files you changed, never the repo.** You are frequently a guest in
+  one module of a larger project that other people own. A repo-wide run reports
+  findings that predate you, in files you have no mandate to edit. Fix what your
+  own diff introduced.
+- Do not create or edit `ruff.toml`, `[tool.ruff]` or `[tool.ty]` in a project
+  you do not own. Ruff finds the project's own config and obeys it — that is the
+  point of scoping the run to files, not to rules.
+- If the project already uses other tools (black, pylint, flake8, mypy), run
+  those on your changed files instead. Do not add a second linter next to an
+  established one.
+- Add `ruff` and `ty` to the `lint` dependency group only when the project is
+  yours.
 
 ## Typing
 
