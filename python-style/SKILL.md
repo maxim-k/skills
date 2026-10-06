@@ -4,7 +4,7 @@ description: >
   Personal Python coding standard: minimalist architecture, explicit typing,
   PEP 8 naming, PEP 257 docstrings in reST, ASD-STE100 plain language,
   why-not-what comments, actionable error handling, pragmatic logging, never
-  log-and-raise, and checking the diff with uv, ruff and ty. Use whenever
+  log-and-raise, and acting on ruff and ty findings. Use whenever
   writing, editing, or reviewing Python code — new modules, functions, CLI
   tools, adding try/except blocks, adding logging, or when the user says
   "python style", "clean python", "lean code", "idiomatic python", "run ruff",
@@ -76,27 +76,21 @@ syncs with `--no-dev`, `dev` syncs the `dev` group on top.
 
 ## Checking what you wrote
 
-`uv` is already the dependency manager, so check with its toolchain:
+`hook.py` in this directory runs after every Edit or Write of a `.py` file:
+`ruff format`, `ruff check --fix` and `ty check` on that one file, through
+`uv tool run`, so it installs nothing into the project. Remaining findings come
+back to you as hook feedback.
 
-```bash
-uvx ruff format <files you changed>
-uvx ruff check --fix <files you changed>
-uvx ty check <files you changed>
-```
-
-`uvx` runs each tool from a throwaway environment. It installs nothing into the
-project and adds nothing to `pyproject.toml`.
-
-- **Pass the files you changed, never the repo.** You are frequently a guest in
-  one module of a larger project that other people own. A repo-wide run reports
-  findings that predate you, in files you have no mandate to edit. Fix what your
-  own diff introduced.
+- **Fix what your own diff introduced.** You are frequently a guest in one
+  module of a larger project that other people own. The file can hold findings
+  that predate you; leave them.
+- An unused import (`F401`) is reported, never auto-fixed — the hook can't tell
+  an import you are about to use from a dead one. Remove it if it is dead.
 - Do not create or edit `ruff.toml`, `[tool.ruff]` or `[tool.ty]` in a project
-  you do not own. Ruff finds the project's own config and obeys it — that is the
-  point of scoping the run to files, not to rules.
-- If the project already uses other tools (black, pylint, flake8, mypy), run
-  those on your changed files instead. Do not add a second linter next to an
-  established one.
+  you do not own. Ruff finds the project's own config and obeys it.
+- If the project already uses black, flake8, pylint or mypy, the hook skips
+  the ruff or ty step that overlaps. Run the project's own tool on your changed
+  files instead. Do not add a second linter next to an established one.
 - Add `ruff` and `ty` to the `lint` dependency group only when the project is
   yours.
 
