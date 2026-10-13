@@ -40,7 +40,7 @@ judgment. The hook does the checking.
 | Hook | Runs | Does |
 | --- | --- | --- |
 | [`conventional-commit/hook.py`](conventional-commit/hook.py) | before `git commit` | Blocks a message that breaks the one-line format or uses a scope missing from `SCOPES.md`. |
-| [`python-style/hook.py`](python-style/hook.py) | after a `.py` edit | Runs `ruff format`, `ruff check --fix` and `ty check` on the file through `uv`. |
+| [`python-style/hook.py`](python-style/hook.py) | after a `.py` edit | Formats the edited lines with `ruff format --range`, then reports `ruff check` and `ty check` findings on those lines, through `uv`. |
 | [`vale-google-style/hook.py`](vale-google-style/hook.py) | after a `.md` edit | Runs Vale and sends the findings back to Claude. |
 
 Register them in `~/.claude/settings.json`:
@@ -63,4 +63,5 @@ Register them in `~/.claude/settings.json`:
 
 The empty `attribution` stops Claude Code from adding a `Co-Authored-By`
 trailer, which the commit hook would otherwise reject. Run
-`python3 conventional-commit/hook.py --selfcheck` after changing that hook.
+`python3 conventional-commit/hook.py --selfcheck` or
+`python3 python-style/hook.py --selfcheck` after changing either hook.

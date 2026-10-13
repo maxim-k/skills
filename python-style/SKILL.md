@@ -76,21 +76,24 @@ syncs with `--no-dev`, `dev` syncs the `dev` group on top.
 
 ## Checking what you wrote
 
-`hook.py` in this directory runs after every Edit or Write of a `.py` file:
-`ruff format`, `ruff check --fix` and `ty check` on that one file, through
-`uv tool run`, so it installs nothing into the project. Remaining findings come
-back to you as hook feedback.
+`hook.py` in this directory runs after every Edit or Write of a `.py` file. It
+runs `ruff format --range` on the lines you changed, then `ruff check` and
+`ty check` on the file, and sends you the findings on your lines. It fixes
+nothing automatically and touches no other line. It runs through
+`uv tool run`, so it installs nothing into the project.
 
-- **Fix what your own diff introduced.** You are frequently a guest in one
-  module of a larger project that other people own. The file can hold findings
-  that predate you; leave them.
-- An unused import (`F401`) is reported, never auto-fixed — the hook can't tell
-  an import you are about to use from a dead one. Remove it if it is dead.
+- **Edit Python with the Edit and Write tools, never through shell commands**
+  (`sed -i`, heredocs, `python -c`). The hook cannot see a shell edit, so your
+  change goes unchecked. If the hook output gets in the way, say so; don't
+  work around it.
+- **Fix every finding the hook reports.** Each one is on a line you wrote.
+- An unused import (`F401`) can be one you are about to use. Remove it if it
+  is dead.
 - Do not create or edit `ruff.toml`, `[tool.ruff]` or `[tool.ty]` in a project
   you do not own. Ruff finds the project's own config and obeys it.
-- If the project already uses black, flake8, pylint or mypy, the hook skips
-  the ruff or ty step that overlaps. Run the project's own tool on your changed
-  files instead. Do not add a second linter next to an established one.
+- If the project already uses flake8, pylint or mypy, the hook skips the ruff
+  or ty check that overlaps. Run the project's own tool on your changed files
+  instead. Do not add a second linter next to an established one.
 - Add `ruff` and `ty` to the `lint` dependency group only when the project is
   yours.
 
