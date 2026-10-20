@@ -79,6 +79,9 @@ before falling back to `~/.vale.ini`. Leave a project config alone.
 
 ## Limits — state these, don't paper over them
 
+- Vale checks only what a regex can. The structural and semantic rules —
+  prescriptive voice, procedures, lists, headings, jargon, plain language —
+  live in `writing-style`.
 - Vale checks style, not correctness. It will not catch a wrong fact, a broken
   command, or a bad code sample.
 - `Google.WordList` and similar checks are regex heuristics. A flagged sentence
