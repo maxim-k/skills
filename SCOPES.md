@@ -13,6 +13,7 @@ a scope here when you add a skill.
 - `system-diagram`: the diagram node grammar, its validator, and the per-hop workflow.
 - `toil-to-nextflow`: the Toil-to-Nextflow conversion workflow and its reference files.
 - `vale-google-style`: the Vale setup and the Markdown prose lint loop.
+- `what-happened`: the problem-report briefing standard for the project lead.
 - `writing-style`: the judgment-level writing rules and the prose review format.
 - `readme`: the repository README and its skill index table.
 - `repo`: repository-level files that are not a skill, such as this vocabulary and any tooling config.
