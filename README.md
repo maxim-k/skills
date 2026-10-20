@@ -16,6 +16,7 @@ up from `~/.claude/skills`.
 | [`system-diagram`](system-diagram/SKILL.md) | Mermaid diagrams of real systems: a node grammar borrowed from UML, a validator that enforces it, one hop per turn. |
 | [`toil-to-nextflow`](toil-to-nextflow/SKILL.md) | Convert a Toil pipeline to a modern Nextflow DSL2 pipeline: audit the orchestration boilerplate, extract the logic that survives, design the processes and DAG, modernize the language, rewire the caller. |
 | [`vale-google-style`](vale-google-style/SKILL.md) | Lint Markdown prose against the Google developer documentation style guide with Vale, then fix the findings. |
+| [`writing-style`](writing-style/SKILL.md) | The Google style guide rules a linter can't check: prescriptive voice, tone, plain language, jargon, headings, lists, procedures, code samples. Applied while drafting, or as a review with suggested fixes. |
 
 ## Install
 
