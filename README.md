@@ -8,6 +8,7 @@ up from `~/.claude/skills`.
 | Skill | What it does |
 | --- | --- |
 | [`conventional-commit`](conventional-commit/SKILL.md) | Single-line Conventional Commits, scope taken from the repo's `SCOPES.md`. |
+| [`design-system`](design-system/SKILL.md) | A closed visual system for utilitarian HTML pages: one style sheet, one script, a fixed element set, and a linter that rejects anything else. |
 | [`dockerfile-style`](dockerfile-style/SKILL.md) | Multi-stage Dockerfiles with dev and prod targets and BuildKit cache mounts for apt, uv, mamba, and ccache. |
 | [`information-design`](information-design/SKILL.md) | Layout and information-density rules from Ruder and Tufte, with the standing rule that no visual claim ships without a check. |
 | [`isabl-app`](isabl-app/SKILL.md) | Scaffold an Isabl app that wraps a bioinformatics tool, plus a static self-check for faults that otherwise only surface on HPC. |
