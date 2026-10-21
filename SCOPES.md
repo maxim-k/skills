@@ -5,6 +5,7 @@ messages. One scope per skill directory, plus two repository-level scopes. Add
 a scope here when you add a skill.
 
 - `conventional-commit`: the single-line Conventional Commit standard and its scope rules.
+- `design-system`: the page style sheet, script, element set, and their linter.
 - `dockerfile-style`: multi-stage Dockerfile layout, build targets, and BuildKit cache mounts.
 - `information-design`: the layout and information-density rules and their review pass.
 - `isabl-app`: scaffolding and self-checks for Isabl applications.
