@@ -115,8 +115,10 @@ itself never widens.
 
 ## Element set
 
-- **Text:** `h1` once, `h2`, `h3`, `p`, `ul`, `ol` (one level of nesting), `a`,
-  `code`, `pre`, `mark`, `br`. A list item holds a line of text, or blocks
+- **Text:** `h1` once, `h2`, `h3`, `h4`, `p`, `ul`, `ol` (one level of nesting), `a`,
+  `code`, `pre`, `mark`, `br`. An `h4` names a part inside an `h3` section
+  (Background, Cause, Decision); it is text size and semibold, sits 20px below
+  what precedes it and 8px above its text, and the index leaves it out. A list item holds a line of text, or blocks
   (paragraphs, code blocks, tables, figures, figure rows) when each item is a
   unit with several parts.
 - **Evidence:** `table` with `thead` and `tbody`, `tr.group` for group rows

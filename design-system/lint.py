@@ -28,7 +28,7 @@ FONT_LINK = "https://fonts.googleapis.com/"
 TAGS = {
     "html", "head", "meta", "title", "link", "style", "script", "body",
     "nav", "main", "header", "section", "div",
-    "h1", "h2", "h3", "p", "ul", "ol", "li", "a", "code", "pre", "mark",
+    "h1", "h2", "h3", "h4", "p", "ul", "ol", "li", "a", "code", "pre", "mark",
     "br", "wbr",
     "table", "thead", "tbody", "tr", "th", "td",
     "figure", "figcaption", "img", "svg", "canvas",
