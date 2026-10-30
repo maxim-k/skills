@@ -125,3 +125,24 @@ treat color as decoration that an editor may destroy.
    decision, and say which is which.
 4. Apply, then state what a reader loses. Every deletion costs something;
    naming the cost is how the user judges the trade.
+
+## Grouping repeated content
+
+Moved here from the design-system skill, which now only restyles and never
+changes a document's structure.
+
+**When siblings share a shape and are meant to be compared, draw them as one
+table and write their shared part once**: as a group row or a column. Twenty
+sections that each hold a one-row table with the same header become one table
+with twenty rows; three identical explanations become one. Index entries that
+share a prefix go under one label, and a prefix the whole page shares goes in
+the title.
+
+**Shape is not intent.** The rule above fires on what looks alike, and that
+is its trap. A research report with three specimens of different data types
+(DNA, RNA, FFPE) repeats the same blocks per specimen, yet the specimens are
+not meant to be compared, and not every block exists for every specimen.
+Grouping them aggregated some sections and not others and broke the report's
+order, which made it harder to read than the repetition was. Before merging,
+state why a reader compares these siblings; if there is no such reason, leave
+the repetition alone and fix the spacing instead.
