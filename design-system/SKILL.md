@@ -1,17 +1,17 @@
 ---
 name: design-system
 description: >
-  Layout and style for any HTML page Claude builds or edits: a report, a plan,
-  a dashboard, a standalone artifact, or a template a script fills. Use
-  whenever generating HTML or CSS for a page, restyling an existing page in
-  this style, or when the user says "design system", "AI slop", "too busy",
-  or "make it plain".
+  Layout and style for any HTML page Claude builds or edits: an article, a
+  report, a CV, a product page, a standalone artifact, or a template a
+  script fills. Use whenever generating HTML or CSS for a page,
+  restyling an existing page in this style, or when the user says "design
+  system", "AI slop", "too busy", or "make it plain".
 ---
 
-Pages here are utilitarian: they deliver information to colleagues as fast as
-possible. This skill decides how a page looks and nothing else. What the page
-says, in which order, and how it is grouped come from the request or from the
-source page, and stay exactly as given.
+Pages here are utilitarian: they deliver information as fast as possible.
+This skill decides how a page looks and nothing else. What the page says, in
+which order, and how it is grouped come from the request or from the source
+page, and stay exactly as given.
 
 The system is **closed**. `base.css` holds every visual value, `page.js`
 holds every behavior, and a page uses only the elements listed below. When
@@ -19,22 +19,22 @@ content does not fit those elements, ask the user; never add CSS.
 
 ## Modes
 
-- **Render:** build a new page from data and an outline that the request
-  supplies. The sections, their order and their content are the request's;
-  this skill only lays them out.
+- **Render:** build a new page from content that the request supplies. Its
+  parts, their order and their nesting are the request's; this skill only
+  lays them out.
 - **Restyle:** convert an existing page. Keep every heading with its text, its
   order and its nesting, and every value. Map each source element to the
   element set (see Restyle mapping), and change nothing else.
 
 ## Steps
 
-1. **Start from the skeleton.** Copy the report or dashboard skeleton below.
-   Paste `base.css` verbatim into the `<style>` and `page.js` verbatim into
-   the last `<script>`. Set `data-seed` on `<body>` to the identifier of what
-   the page is about, so every page about the same thing shares one
-   fingerprint. Done when the page renders with its fingerprint.
+1. **Start from base.** Copy the base skeleton, and add the table of contents
+   for a report (see Layouts). Paste `base.css` verbatim into the `<style>`
+   and `page.js` verbatim into the last `<script>`. Done when the page
+   renders.
 2. **Fill it with elements from the element set.** Every tag and class in the
-   page appears in the element set. Done when no other tag or class remains.
+   page appears in the element set, and every heading has the level its
+   depth gives it. Done when no other tag or class remains.
 3. **Admit color and highlight.** Each meaningful chart color and each
    `<mark>` passes its admission questions, with the answers in a comment
    right before it. Done when every one has its comment, or is gone.
@@ -46,9 +46,12 @@ content does not fit those elements, ask the user; never add CSS.
 For a script that fills a template, apply the steps to the template, then run
 the linter on one rendered page.
 
-## Skeletons
+## Layouts
 
-Report or plan:
+Every page starts from **base**. A layout is base plus one addition, and the
+addition moves nothing that base already placed.
+
+Base:
 
 ```html
 <!doctype html>
@@ -56,23 +59,17 @@ Report or plan:
 <head>
 <meta charset=utf-8>
 <meta name=viewport content="width=device-width, initial-scale=1">
-<title>Page title, subject</title>
+<title>Title</title>
 <link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
 <style>/* base.css, verbatim */</style>
 </head>
-<body data-seed="subject-id">
-<nav class=index>
-<div class=fingerprint></div>
-<ol>
-<li><a href="#s1">Summary</a></li>
-<li><a href="#s2">Findings</a><ol><li><a href="#s2-1">...</a></li></ol></li>
-</ol>
-</nav>
+<body>
 <main>
-<header><h1>Title</h1><p>One meta line: where the data came from.</p></header>
-<section id=s1><h2>Summary</h2><p>...</p></section>
-<section id=s2><h2>Findings</h2>
-<section id=s2-1><h3>...</h3><p>...</p><table>...</table></section>
+<header><h1>Title</h1><p>...</p></header>
+<section id=s1><h2>Section</h2><p>...</p></section>
+<section id=s2><h2>Section</h2>
+<section id=s2-1><h3>Subsection</h3><p>...</p></section>
+<section id=s2-2><h3>Subsection</h3><p>...</p></section>
 </section>
 </main>
 <script>/* page.js, verbatim */</script>
@@ -80,116 +77,140 @@ Report or plan:
 </html>
 ```
 
-The index lists the `h2` and `h3` headings exactly as written. Headings
-carry numbers only when the request or the source numbers them. The
-fingerprint is the first thing in the index, so it stays in view while the
-page scrolls.
+`main` is a text column centered in the window. Tables and charts wider than
+it extend to the right; the text column itself never widens. The `header`
+holds the `h1` and, when the content has them, paragraphs under it.
 
-Dashboard: no index, because a dashboard shows everything on one screen. The
-fingerprint is the first thing in `main`.
+**Report** = base + a **table of contents** in `nav.index`, the first child
+of `body`. It sits in the left column, beside `main`, and lists the `h2` and
+`h3` headings exactly as written:
 
 ```html
-<body data-seed="subject-id">
-<main>
-<div class=fingerprint></div>
-<header><h1>Title</h1></header>
-<form class=filters>...</form>
-<section><h2>Charts</h2>...</section>
-<section><h2>Detail</h2><table>...</table></section>
-</main>
-<dialog><h2>Row title</h2><table>...</table><button>Close</button></dialog>
-<script>/* the page's own code */</script>
-<script>/* page.js, verbatim */</script>
-</body>
+<nav class=index>
+<ol>
+<li><a href="#s1">Section</a></li>
+<li><a href="#s2">Section</a><ol><li><a href="#s2-1">Subsection</a></li><li><a href="#s2-2">Subsection</a></li></ol></li>
+</ol>
+</nav>
 ```
 
-Spacing comes from this nesting: `main`, `header` and `section` space their
-children, and elements carry no margins. Keep the nesting and the spacing is
-right: a section starts 48px of visible space below what precedes it, a
-subsection 32px, blocks sit 20px apart, and a heading sits 8px above its
-content. List items that hold blocks sit 28px apart.
+**Fingerprint**, on any layout and only when the user wants one: a
+`div.fingerprint`, which `page.js` draws from `data-seed` on `<body>`. Set
+`data-seed` to the identifier of what the page is about, so every page about
+the same thing shares one fingerprint. It is the first thing in the table of
+contents, where it stays in view while the page scrolls, or the first thing
+in `main` when there is no table of contents. The browser tab icon is drawn
+from the same seed, or from the title, on every page.
 
-`main` is centered in the window and the index sits at its left edge. Tables
-and figures wider than the text column extend to the right; the text column
-itself never widens.
+## Headings
+
+A heading's level is its depth in the content's own nesting, never the size
+it should look:
+
+- `h1`: the page's title, once, in the `header`.
+- `h2`: a division of the page.
+- `h3`: a division of an `h2`.
+- `h4`: a division of an `h3`. Content nested deeper is set as `h4`.
+
+Each `h2`, `h3` and `h4` opens its own `section`, and the section's depth
+gives its level. A level holds two or more sections, levels follow one after
+another without a gap, and a heading with child sections also has content of
+its own or several children. Headings carry numbers only when the content
+numbers them. When rendering, headings are in sentence case; a restyle keeps
+the source's wording.
+
+Type and space each follow one ratio. Each heading level is 1.2 times the
+one below it: `h4` is body text in semibold (16), `h3` 19, `h2` 23, `h1` 28.
+The space before a heading grows by 4/3 per level from the 20px gap between
+blocks: 27 before an `h4`, 36 before an `h3`, 48 before an `h2`. Every
+heading sits 8px above its content. All of it comes from the nesting:
+`main`, `header` and `section` space their children, and elements carry no
+margins. Keep the nesting and the spacing is right.
 
 ## Element set
 
-- **Text:** `h1` once, `h2`, `h3`, `h4`, `p`, `ul`, `ol` (one level of nesting), `a`,
-  `code`, `pre`, `mark`, `br`. An `h4` names a part inside an `h3` section
-  (Background, Cause, Decision); it is text size and semibold, sits 20px below
-  what precedes it and 8px above its text, and the index leaves it out. A list item holds a line of text, or blocks
-  (paragraphs, code blocks, tables, figures, figure rows) when each item is a
-  unit with several parts.
-- **Evidence:** `table` with `thead` and `tbody`, `tr.group` for group rows
-  that the content already has, `.num` on every cell of a numeric column;
-  `figure` with `img`, `svg` or `canvas` and an optional `figcaption`;
-  `div.figure-row` for figures side by side on the same scale, used only when
-  each figure stays legible at its share of the width. Wide figures (a
-  long time series, a heatmap strip) stack one under another at full width.
-- **Navigation:** `nav.index`, `div.fingerprint`.
-- **Dashboard controls:** `form.filters`, `label`, `select`, `input` (search,
-  number, checkbox, radio), `button`, `dialog`, and a tooltip on a chart mark.
-  - A row that opens a modal does it through a link on its first cell.
-  - A tooltip is the chart library's own, or an SVG `<title>` on the mark.
+- **Text:** `h1`, `h2`, `h3`, `h4`, `p`, `ul`, `ol` (one level of nesting),
+  `a`, `code`, `pre`, `mark`, `br`. A list item holds a line of text, or
+  blocks (paragraphs, code blocks, tables, images, charts, rows) when each
+  item is a unit with several parts; such items sit 27px apart.
+- **Structure:** `header`, `section`, `nav.index`, `div.fingerprint`.
+- **Pictures:** `figure` holding one image or one chart; `div.row` for
+  pictures side by side.
+- **Tables:** `table` with `thead` and `tbody`, `tr.group`, `.num`.
 
 Prose is sentences. Weight and size are reserved for headings, so emphasis in
 prose comes from sentence order. `code` is for values shown verbatim
-(identifiers, paths, keys), set as in GitHub markdown: monospace at 85% on a
-light grey background. It wraps at spaces like text, and `page.js` lets paths
-break after a slash and comma-separated lists after a comma. A code block
-(`pre`) keeps its line breaks, wraps long lines, and stays within the text
-column. A `figcaption` keeps the text measure even when its figure is wider.
-When rendering, headings and table headers are in sentence case; a restyle
-keeps the source's wording.
+(identifiers, paths, keys), set in monospace at 85% on a light grey
+background. It wraps at spaces like text, and `page.js` lets paths break
+after a slash and comma-separated lists after a comma. A code block (`pre`)
+keeps its line breaks, wraps long lines, and stays within `main`.
+
+## Images and charts
+
+An **image** is a picture file: a photo, a screenshot, an illustration. It
+is an `img` in a `figure`, shown at its own size, aligned left, and scaled
+down only when it is wider than `main`. Its `alt` describes the picture for
+a reader who cannot see it.
+
+A **chart** is a picture drawn from data: an `svg` or a `canvas` in a
+`figure`. An `svg` chart carries a `<title>` that says what it shows. A chart
+may extend to the right of `main` when its data needs the length, as a long
+time series or a heatmap strip does.
+
+A **row** (`div.row`) puts pictures side by side on equal shares of `main`'s
+width, used only when each one stays legible at its share. Each picture in a
+row keeps the image rule within its share. On a narrow screen the row stacks.
+
+Pictures have no captions: the heading or the sentence before a picture
+names it.
 
 ## Tables
 
-Every table has the same look: 14px text, tight rows, rules between rows.
-Column widths come from the content. Numeric columns are right-aligned
-(`.num`). When rendering, a numeric column has the same number of decimal
-places in every cell; a restyle keeps the source's numbers exactly.
+Every table has the same look: 13px text, one step below body text, tight
+rows, rules between rows. Column widths come from the content.
 
-Write every table in full. `page.js` turns a table longer than 15 rows or
-wider than its column into a **data table**: a search box and a Columns menu
-above it (every column starts visible), headers that sort, 25 rows per page,
-and a header row that stays on top while the rows scroll. Without the script
-the full table shows.
+- A table of records has a `thead` with one header cell per column and a
+  `tbody` with one row per record. `tr.group` marks group rows that the
+  content already has.
+- A table of fields describes one thing. Up to five fields form one row with
+  a column per field. More fields form a two-column table with no `thead`:
+  each row holds the field name in a `th` and its value in a `td`.
+- A numeric column has `.num` on every cell and is right-aligned. Its unit
+  goes once in the header ("Size, GB"), so its cells hold bare numbers;
+  negative numbers carry the minus sign `−`. When rendering, the column has
+  the same number of decimal places in every cell; a restyle keeps the
+  source's numbers exactly.
+- An empty value is an empty cell.
+- A cell holds text, numbers, `a`, `code` and `br`. A cell with long text is
+  at least 24rem wide.
+- The heading or the sentence before a table names it.
 
-A dashboard's own filters mark the rows they exclude with `data-out` and then
-call `table.dispatchEvent(new Event("refresh"))`; the data table does the
-rest. A React dashboard uses shadcn's Data Table with the same controls.
+Write every table in full. `page.js` turns a table of records longer than 15
+rows or wider than its space into a **data table**: a search box and a
+Columns menu above it (every column starts visible), headers that sort, 25
+rows per page, and a header row that stays on top while the rows scroll.
 
 ## Restyle mapping
 
 | Source element | Becomes |
 |---|---|
-| Figure opened in a modal | the figure, inline |
+| Image or chart opened in a modal | the image or chart, inline |
+| Caption on an image or chart | a paragraph right before it |
 | Badge, label, ribbon, tag | its text |
 | Icon with no text (a check mark) | the word it stands for; the only text a restyle adds |
-| Colored text (red failure, green OK) | plain text; color returns only through the color questions |
+| Colored text | plain text; color returns only through the color questions |
 | Emoji in a heading or text | removed |
-| Field label and value pairs | a table with one column per field |
-| Heading levels | the heading's depth in the source's outline, skipped levels closed up; anything deeper than `h3` becomes `h3` in place |
+| Field label and value pairs | a table of fields |
+| Heading levels | the heading's depth in the source's outline, skipped levels closed up; anything deeper than `h4` becomes `h4` in its own section |
 | Bold, italic, underline in prose | plain text |
 | Code block (`pre`, `pre code`) | `pre` with its line breaks; syntax colors removed |
-| Site navigation (navbar, version, links to other pages) | a line of links in the `header`, after the meta line |
+| Site navigation (navbar, version, links to other pages) | a line of links in the `header`, after its paragraphs |
 | Sidebar blocks with their own headings | sections after the main content, in source order |
 | Logo, avatar, credits, loading text | removed |
 | Two or more sibling wrappers of one kind under a heading, without headings of their own (cards, items, entries) | an `ol` with one item per wrapper; the browser numbers them, so the restyle adds no text |
 | A single wrapper, layout grids, panels, dividers | their content, in order |
 
-## Layers
-
-A page has three **layers**: page, region (`form.filters`), overlay
-(`dialog`, a dropdown, a tooltip). Each element contains only elements from a
-lower layer:
-
-- A region holds controls and text, and sits in `main` or a `section`.
-- A modal drills into one row or mark and shows its details as text and
-  tables under an `h2`, with one Close button. Escape and a click on the
-  backdrop close it too.
-- A tooltip shows the value of the mark under the pointer.
+A restyle keeps the source's nesting even where a level holds one section.
 
 ## Color
 
@@ -197,9 +218,9 @@ The page has black text, white ground, `#ddd` rules, link blue and highlight
 yellow, all in `base.css`.
 
 Charts follow the `dataviz` skill for form and marks, and draw in black by
-default. Text inside a chart is 14px, like table text. When the chart
-separates categories (control and treatment, region A and B), the categories take
-`--chart-1`, `--chart-2` and onward in order, with no admission.
+default. Text inside a chart is 13px, like table text. When the chart
+separates categories, the categories take `--chart-1`, `--chart-2` and
+onward in order, with no admission.
 
 A color that carries meaning beyond telling categories apart (direction,
 status, a threshold) or that lies outside the `--chart` tokens must pass all
@@ -231,8 +252,8 @@ with the answers in a `<!-- highlight: ... -->` comment right before it:
    comparison, or it goes.
 4. **Is it a fact?** A finding, not an opinion about importance.
 
-It marks a phrase inside a paragraph, never a heading, table cell or index
-entry. A restyle adds no highlight the source did not have.
+It marks a phrase inside a paragraph, never a heading, table cell or table
+of contents entry. A restyle adds no highlight the source did not have.
 
 ## Characters
 
@@ -240,15 +261,6 @@ Text is written with the punctuation of the language: commas, periods, colons
 and semicolons. Lists are `ul` or `ol`. The linter rejects `·`, `•`, `|`, `/`
 between spaces, `→`, `▸`, `✓`, `✗`, `★` and emoji outside `code`. `↑` and `↓`
 appear only next to a number. An em dash appears only inside a sentence.
-
-## Dashboards in React
-
-A dashboard built with shadcn/ui pastes the two `:root` blocks of `base.css`
-into its global CSS; the token names are shadcn's own. Use only the
-components that match the element set: Data Table, Select, Combobox,
-Checkbox, RadioGroup, Input, Button, Dialog, Tooltip, and charts. Lint a saved
-copy of the rendered HTML; the CSS check does not apply there, every other
-check does.
 
 ## Not covered
 

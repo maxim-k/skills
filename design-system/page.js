@@ -228,8 +228,7 @@ function dataTable(table, head, body) {
   next.addEventListener("click", () => { state.page++; render(); });
 
   function render() {
-    // A dashboard's own filters mark rows with data-out and send "refresh" to the table.
-    let rows = original.filter((r) => !r.classList.contains("group") && !r.hasAttribute("data-out"));
+    let rows = original.filter((r) => !r.classList.contains("group"));
     if (state.query) rows = rows.filter((r) => text.get(r).includes(state.query));
     if (state.sortDir) {
       const sign = state.sortDir === 1 ? 1 : -1;
@@ -256,14 +255,13 @@ function dataTable(table, head, body) {
     previous.disabled = state.page === 0;
     next.disabled = state.page >= pages - 1;
   }
-  table.addEventListener("refresh", () => { state.page = 0; render(); });
   render();
 }
 
 // A cell sorts by its number when it holds only a number, and by its text otherwise.
 function sortKey(cell) {
   const text = cell ? cell.textContent.trim() : "";
-  const num = /^[↑↓\-−+]?[\d,.]+%?$/.test(text) ? parseFloat(text.replace(/[,%↑↓]/g, "")) : NaN;
+  const num = /^[↑↓\-−+]?[\d,.]+%?$/.test(text) ? parseFloat(text.replace(/[,%↑↓]/g, "").replace("−", "-")) : NaN;
   return { text, num };
 }
 

@@ -16,7 +16,7 @@
   --palette-purple: #cc79a7;
 }
 
-/* Semantic tokens, named as shadcn names them so a shadcn theme can reuse this block. */
+/* Semantic tokens. */
 :root {
   color-scheme: light;
   --background: var(--palette-white);
@@ -55,13 +55,15 @@
   --page-pad: 64px;
   --page-pad-y: 96px;
   --wide: 100%;              /* how far tables and figures may extend; set per layout below */
-  /* Spacing is set by the gap the reader sees: from the bottom of one line's letters to the
+  /* Two scales, each one ratio. Type: body 16 times 1.2 per heading level (h4 16, h3 19, h2 23,
+     h1 28), line height 1.2 times the size rounded up to 4px; tables and charts one step below
+     body, 13. Space before a heading: the 20px block gap times 4/3 per level (27 before an h4
+     and between list items that hold blocks, 36 before an h3, 48 before an h2); 8 from any
+     heading to its content.
+     Spacing is set by the gap the reader sees: from the bottom of one line's letters to the
      top of the next line's letters (the font's content area, 1.21em for Inter), not between
      boxes. Each margin below is its target minus the half-leading of the two neighbours,
-     half-leading = (line-height - 1.21 * font-size) / 2: 2.3px for body text, 2.7px for h2,
-     1.1px for h3, 1px for h1. Targets: 48 before an h2, 32 before an h3, 20 between blocks
-     (body text keeps its paragraph rhythm), 8 from a heading to its content, 28 between list
-     items that hold blocks (more than a block, less than a subsection). */
+     half-leading = (line-height - 1.21 * font-size) / 2. */
   /* Inter's metrics, measured from the served font: ascender 0.969em, cap height 0.7275em. */
   --font-ascent: 0.969;
   --font-cap: 0.7275;
@@ -70,15 +72,18 @@
   --pill-offset: calc(var(--lead-h1) + (var(--font-ascent) - var(--font-cap)) * 28px + var(--font-cap) * 14px - 14px);
   --lead-p: calc((24px - 1.21 * 16px) / 2);
   --lead-h1: calc((36px - 1.21 * 28px) / 2);
-  --lead-h2: calc((32px - 1.21 * 22px) / 2);
-  --lead-h3: calc((24px - 1.21 * 18px) / 2);
+  --lead-h2: calc((28px - 1.21 * 23px) / 2);
+  --lead-h3: calc((24px - 1.21 * 19px) / 2);
+  --lead-h4: calc((24px - 1.21 * 16px) / 2);
   --space-section: calc(48px - var(--lead-p) - var(--lead-h2));     /* before an h2 */
-  --space-subsection: calc(32px - var(--lead-p) - var(--lead-h3));  /* before an h3 */
+  --space-subsection: calc(36px - var(--lead-p) - var(--lead-h3));  /* before an h3 */
+  --space-part: calc(27px - var(--lead-p) - var(--lead-h4));        /* before an h4 */
   --space-block: calc(20px - 2 * var(--lead-p));                    /* between blocks */
-  --space-item: calc(28px - 2 * var(--lead-p));                     /* between list items that hold blocks */
+  --space-item: calc(27px - 2 * var(--lead-p));                     /* between list items that hold blocks */
   --space-after-h1: calc(8px - var(--lead-h1) - var(--lead-p));
   --space-after-h2: calc(8px - var(--lead-h2) - var(--lead-p));
   --space-after-h3: calc(8px - var(--lead-h3) - var(--lead-p));
+  --space-after-h4: calc(8px - var(--lead-h4) - var(--lead-p));
 }
 
 /* Type */
@@ -91,15 +96,15 @@ body {
 }
 h1, h2, h3, h4, p, ul, ol, pre, figure, table { margin: 0; }
 h1 { font-size: 28px; line-height: 36px; font-weight: 600; }
-h2 { font-size: 22px; line-height: 32px; font-weight: 600; }
-h3 { font-size: 18px; line-height: 24px; font-weight: 600; }
+h2 { font-size: 23px; line-height: 28px; font-weight: 600; }
+h3 { font-size: 19px; line-height: 24px; font-weight: 600; }
 h4 { font-size: 16px; line-height: 24px; font-weight: 600; }
 p, ul, ol { max-width: var(--measure); }
 ul, ol { padding-left: 24px; }
 li + li { margin-top: 4px; }
 /* A list item may hold blocks; they sit as blocks do, and such items sit further apart. */
-li:has(> :is(p, pre, table, figure, .figure-row)) > * + * { margin-top: var(--space-block); }
-li:has(> :is(p, pre, table, figure, .figure-row)) + li { margin-top: var(--space-item); }
+li:has(> :is(p, pre, table, figure, .row)) > * + * { margin-top: var(--space-block); }
+li:has(> :is(p, pre, table, figure, .row)) + li { margin-top: var(--space-item); }
 /* Code as in GitHub markdown: monospace at 85%, on a light grey background. Matching x-heights
    (font-size-adjust) left monospace at full size, and its wider letters read larger than the text. */
 code, pre { font-family: var(--font-mono); font-size: 85%; background: var(--code-background); }
@@ -110,24 +115,25 @@ a { color: var(--link); text-decoration: underline 1px; text-underline-offset: 0
 a:hover { text-decoration-color: var(--link); }
 mark { background: var(--mark); color: var(--foreground); }
 /* Even line endings: pretty avoids short last lines in prose, balance evens out headings. */
-p, li, figcaption, nav.index a { text-wrap: pretty; }
+p, li, nav.index a { text-wrap: pretty; }
 h1, h2, h3, h4 { text-wrap: balance; }
 
-/* Layout: main is centered in the window, the index sits at the left edge. The side
-   columns are equal, so main stays centered; the left one never gets narrower than the
-   index plus the gutter, so on a narrow window main moves right instead of covering the
-   index. Tables and figures wider than the measure extend into the right column, up to
-   the page padding (and 16px of room for a scrollbar). */
-body:has(> nav.index) {
+/* Layout, the same on every page: main is centered in the window, and the left column holds
+   the table of contents when the page has one, so adding it moves nothing. The side columns
+   are equal, so main stays centered; the left one never gets narrower than the table of
+   contents plus the gutter, so on a narrow window main moves right instead of covering it.
+   Tables and charts wider than main extend into the right column, up to the page padding
+   (and 16px of room for a scrollbar); images and rows stay within main. */
+body {
   --room: calc(100vw - 2 * var(--page-pad) - 16px);
   --wide: min((var(--room) + var(--measure)) / 2, var(--room) - var(--index-width) - var(--gutter));
   display: grid;
   grid-template-columns: minmax(calc(var(--index-width) + var(--gutter)), 1fr) minmax(0, var(--measure)) 1fr;
 }
-body:has(> nav.index) > nav.index { width: var(--index-width); }
-main { max-width: 1200px; min-width: 0; }
-body:has(> nav.index) main { max-width: none; }
-table, figure, .figure-row, .data-table { width: max-content; max-width: var(--wide); }
+body > nav.index { grid-column: 1; width: var(--index-width); }
+main { grid-column: 2; min-width: 0; }
+table, figure, .data-table { width: max-content; max-width: var(--wide); }
+figure:has(> img) { max-width: 100%; }  /* an image keeps its own size, scaled down to main's width */
 /* The index sticks as a whole; only its list scrolls, so the pill above the list stays in view.
    It is at most the window minus the page's bottom padding tall: a sticky element cannot pass the
    end of main, so a full-window index would be pushed up off the screen on the last screen. */
@@ -141,7 +147,7 @@ nav.index a { display: block; padding-left: 16px; text-indent: -16px;  /* hangin
               color: inherit; text-decoration: none; overflow-wrap: anywhere; }
 nav.index a[aria-current] { color: var(--link); }
 
-/* Fingerprint: page.js draws it, at the top of the index, or of main when there is no index.
+/* Fingerprint, optional: page.js draws it, at the top of the index, or of main when there is no index.
    In the index it collapses to a strip once the page scrolls; page.js redraws it at that size. */
 .fingerprint { width: 136px; height: 28px; }
 html.scrolled nav.index .fingerprint { height: 8px; }
@@ -158,17 +164,20 @@ section > * + * { margin-top: var(--space-block); }
 section > * + section { margin-top: var(--space-subsection); }
 section > h2 + * { margin-top: var(--space-after-h2); }
 section > h3 + * { margin-top: var(--space-after-h3); }
-section > h4 + * { margin-top: calc(8px - 2 * var(--lead-p)); }  /* an h4 has the text's half-leading */
-section > :is(h2, h3) + section { margin-top: var(--space-block); }  /* a heading directly above a subheading */
+section section > * + section { margin-top: var(--space-part); }
+section > h4 + * { margin-top: var(--space-after-h4); }
+/* A heading directly above a subheading. */
+section > h2 + section, section section > h3 + section { margin-top: var(--space-block); }
 
-/* Tables: denser than prose, 14/20, the one table size in the type scale. */
-table { border-collapse: collapse; font-size: 14px; line-height: 20px;
+/* Tables: denser than prose, 13/20, one step below body text. */
+table { border-collapse: collapse; font-size: 13px; line-height: 20px;
         font-variant-numeric: tabular-nums; }
 th, td { text-align: left; vertical-align: top; padding: 6px 24px 6px 0; overflow-wrap: break-word; }
 th:last-child, td:last-child { padding-right: 0; }
 /* No padding above the header row: a table's letters start at its top edge, like a paragraph's. */
 thead th { font-weight: 400; padding-top: 0; border-bottom: 1px solid var(--foreground); background: var(--background); }
-td { border-bottom: 1px solid var(--border); }
+td, tbody th { border-bottom: 1px solid var(--border); }
+tbody th { font-weight: 400; }  /* field names in a field table */
 .num { text-align: right; }
 tr.group th { font-weight: 600; padding-top: 16px; border-bottom: 1px solid var(--border); }
 tbody tr.group:first-child th { padding-top: 6px; }
@@ -177,44 +186,39 @@ tbody tr.group:first-child th { padding-top: 6px; }
 .data-table-tools { position: relative; display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
 .data-table-menu { position: absolute; top: 40px; right: 0; z-index: 2; display: flex; flex-direction: column; gap: 4px;
                    max-height: 60vh; overflow-y: auto; padding: 8px 16px; background: var(--popover);
-                   border: 1px solid var(--foreground); border-radius: var(--radius); font-size: 14px; }
+                   border: 1px solid var(--foreground); border-radius: var(--radius); font-size: 13px; }
 .data-table-menu[hidden] { display: none; }
 .data-table-scroll { overflow: auto; max-height: calc(100vh - 160px); }
 .data-table-scroll table { max-width: none; }
 .data-table-scroll thead th { position: sticky; top: 0; z-index: 1; }
-.data-table-pager { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; }
+.data-table-pager { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; }
 thead th > button { all: unset; cursor: pointer; }
 th[aria-sort=ascending] > button::after { content: " ↑"; }
 th[aria-sort=descending] > button::after { content: " ↓"; }
 button:disabled { opacity: 0.4; cursor: default; }
 
-/* Figures */
+/* Images and charts. A row splits main's width into equal shares. */
 figure img, figure svg { display: block; max-width: 100%; height: auto; }
-figure svg { font: 14px/1 var(--font-sans); }  /* chart text matches table text */
-figcaption { margin-bottom: 8px; max-width: var(--measure); }  /* a caption is prose: it keeps the text measure */
-.figure-row > figure { width: auto; max-width: none; min-width: 0; }
-.figure-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); column-gap: 24px; }
+figure svg { font: 13px/1 var(--font-sans); }  /* chart text matches table text */
+.row > figure { width: auto; max-width: none; min-width: 0; }
+.row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); column-gap: 24px; }
 
-/* Controls, dashboards only. */
-.filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px 24px; }
+/* Data table controls: page.js builds them. */
 label { display: inline-flex; gap: 8px; align-items: center; }
-input, select, button { font: inherit; color: inherit; }
-select, input[type=search], input[type=number], button {
+input, button { font: inherit; color: inherit; }
+input[type=search], button {
   height: 32px; padding: 0 8px; background: var(--background);
   border: 1px solid var(--input); border-radius: var(--radius);
 }
-input[type=checkbox], input[type=radio] { accent-color: var(--foreground); margin: 0; }
+input[type=checkbox] { accent-color: var(--foreground); margin: 0; }
 :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-dialog { max-width: min(1200px, 90vw); padding: 24px; color: inherit;
-         border: 1px solid var(--foreground); border-radius: var(--radius); }
-dialog::backdrop { background: color-mix(in srgb, var(--foreground) 30%, transparent); }
 
 /* Narrow screens: the index sits above the content as a plain list. */
 @media (max-width: 1000px) {
   body { padding: 48px 16px; }
-  body:has(> nav.index) { display: block; --wide: 100%; }
-  body:has(> nav.index) > nav.index { width: auto; }
+  body { display: block; --wide: 100%; }
+  body > nav.index { width: auto; }
   nav.index { position: static; max-height: none; margin: 0 0 var(--space-section); }
   nav.index > ol { overflow-y: visible; padding-bottom: 0; }
-  .figure-row { grid-auto-flow: row; row-gap: 24px; }
+  .row { grid-auto-flow: row; row-gap: 24px; }
 }

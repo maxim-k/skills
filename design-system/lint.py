@@ -31,20 +31,21 @@ TAGS = {
     "h1", "h2", "h3", "h4", "p", "ul", "ol", "li", "a", "code", "pre", "mark",
     "br", "wbr",
     "table", "thead", "tbody", "tr", "th", "td",
-    "figure", "figcaption", "img", "svg", "canvas",
-    "form", "label", "select", "option", "input", "button", "dialog",
+    "figure", "img", "svg", "canvas",
 }  # fmt: skip
-CLASSES = {"index", "fingerprint", "figure-row", "num", "group", "filters"}
-DIV_CLASSES = {"fingerprint", "figure-row"}
+CLASSES = {"index", "fingerprint", "row", "num", "group"}
+DIV_CLASSES = {"fingerprint", "row"}
 # Chart libraries draw the content of these elements, so the linter
 # does not check it.
 OPAQUE = {"svg", "canvas", "script", "style"}
 # Literal text, where separators and arrows are data.
 VERBATIM = {"code", "pre"}
-# A modal shows details only. Its one Close button is not a control here.
-CONTROLS = {"form", "select", "input"}
-VOID = {"meta", "link", "br", "wbr", "img", "input"}
+VOID = {"meta", "link", "br", "wbr", "img"}
 HEADINGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
+# h2 to h4 open sections nested this deep.
+MAX_DEPTH = 3
+# A one-row table with more fields than this becomes a two-column table.
+MAX_ROW_FIELDS = 5
 
 BANNED = re.compile(r"[·•|→▸►✓✔✗✘★☆]|\s/\s|[\U0001F300-\U0001FAFF☀-➿]")
 STRAY_ARROW = re.compile(r"[↑↓](?!\s?[−\-+]?\d)")
@@ -115,6 +116,9 @@ class Linter(HTMLParser):
         self.color_comment = False
         self.marks = 0
         self.tables: list[Table] = []
+        # Child sections of each open section; the first entry counts the page's.
+        self.sections: list[int] = [0]
+        self.expect_heading = False
 
     def report(self, message: str) -> None:
         """Add a finding at the current line."""
@@ -149,14 +153,19 @@ class Linter(HTMLParser):
             self.report("stylesheet other than the font link")
         if tag == "div" and not classes & DIV_CLASSES:
             self.report("<div> is allowed only as .fingerprint or .figure-row")
-        if tag == "form" and "form" in self.stack:
-            self.report("region inside a region")
-        if tag == "dialog" and "dialog" in self.stack:
-            self.report("overlay inside an overlay")
-        if tag in CONTROLS and "dialog" in self.stack:
-            self.report("controls inside a modal; a modal only drills into a row")
+        if tag == "img" and not (a.get("alt") or "").strip():
+            self.report("<img> without alt text that describes the picture")
         if tag == "mark":
             self.check_mark()
+        self.check_heading(tag)
+        if tag == "section":
+            self.sections[-1] += 1
+            self.sections.append(0)
+            self.expect_heading = True
+            if len(self.sections) - 1 > MAX_DEPTH:
+                self.report(
+                    "sections nest three deep at most; set deeper content as h4"
+                )
         self.track_table(tag, a, classes)
         self.last_comment = ""
         if tag in OPAQUE:
@@ -168,8 +177,12 @@ class Linter(HTMLParser):
         """Close the open elements up to this tag."""
         if tag in VOID or tag not in self.stack:
             return
-        while self.stack.pop() != tag:
-            pass
+        while True:
+            closed = self.stack.pop()
+            if closed == "section":
+                self.check_siblings(self.sections.pop())
+            if closed == tag:
+                break
         if self.opaque() or not self.tables:
             return
         t = self.tables[-1]
@@ -229,6 +242,32 @@ class Linter(HTMLParser):
 
     # Checks that need a whole element
 
+    def check_heading(self, tag: str) -> None:
+        """Check that a heading opens a section whose depth gives its level."""
+        first = self.expect_heading
+        self.expect_heading = False
+        if first and tag not in HEADINGS:
+            self.report("a section opens with its heading")
+            return
+        if tag not in HEADINGS or tag == "h1":
+            return
+        if first:
+            depth = len(self.sections) - 1
+            if tag != f"h{depth + 1}" and depth <= MAX_DEPTH:
+                self.report(
+                    f"<{tag}> opens a section {depth} deep; its heading is <h{depth + 1}>"
+                )
+        else:
+            self.report(
+                f"<{tag}> outside its own section; each heading opens a section"
+            )
+
+    def check_siblings(self, count: int) -> None:
+        """Report a level that holds a single section."""
+        # A restyle keeps the source's nesting, lone sections included.
+        if count == 1 and not self.restyle:
+            self.report("a single subsection; a level needs two or more sections")
+
     def check_mark(self) -> None:
         """Allow one highlight per page, with its admission comment."""
         self.marks += 1
@@ -274,6 +313,15 @@ class Linter(HTMLParser):
             }
             if len(decimals) > 1 and not self.restyle:
                 self.report(f'numeric column "{name}" mixes decimal places')
+            if any(c.text.strip().startswith("-") for c in cells) and not self.restyle:
+                self.report(
+                    f'numeric column "{name}" uses "-"; write the minus sign "−"'
+                )
+        if len(rows) == 1 and len(rows[0]) > MAX_ROW_FIELDS:
+            self.report(
+                f"one row of {len(rows[0])} fields; more than {MAX_ROW_FIELDS} "
+                "become a two-column table with the field names as row headers"
+            )
 
     def check_styles(self, html: str) -> None:
         """Report each <style> block that is not base.css verbatim."""
@@ -300,6 +348,10 @@ def lint(html: str, restyle: bool = False) -> list[tuple[int, str]]:
     linter.check_styles(html)
     linter.feed(html)
     linter.close()
+    if linter.sections[0] == 1 and not restyle:
+        linter.findings.append(
+            (0, "a single section on the page; a level needs two or more sections")
+        )
     return sorted(linter.findings)
 
 

@@ -30,12 +30,22 @@ GOOD = f"""<!doctype html>
 a slower build --><mark>Median latency rose by 12 ms</mark> on the API.</p>
 </section>
 <section id=load><h2>Load</h2>
-<table><thead><tr><th>Service</th><th>Requests</th></tr></thead><tbody>
-<tr><td>api</td><td class=num>1.50</td></tr>
+<section><h3>Traffic</h3>
+<table><thead><tr><th>Service</th><th>Change, %</th></tr></thead><tbody>
+<tr><td>api</td><td class=num>−1.50</td></tr>
 <tr><td>web</td><td class=num>12.25</td></tr></tbody></table>
-<figure><svg viewBox="0 0 10 10"><rect fill="var(--chart-1)"/>
-<rect fill="#0072b2"/><rect stroke="#000"/></svg>
-<figcaption>Requests per second.</figcaption></figure>
+<figure><svg viewBox="0 0 10 10"><title>Requests per second</title>
+<rect fill="var(--chart-1)"/><rect fill="#0072b2"/><rect stroke="#000"/></svg></figure>
+</section>
+<section><h3>Host</h3>
+<section><h4>Hardware</h4>
+<table><tbody><tr><th>Memory</th><td>64 GB</td></tr><tr><th>Disks</th><td>2</td></tr>
+</tbody></table>
+<div class=row><figure><img src="a.png" alt="The front panel"></figure>
+<figure><img src="b.png" alt="The back panel"></figure></div>
+</section>
+<section><h4>Software</h4><p>Linux.</p></section>
+</section>
 </section>
 </main>
 </body>
@@ -51,9 +61,15 @@ BAD = """<!doctype html><html><head><style>body { color: red }</style></head>
 <table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody>
 <tr><td>a</td><td>1.5</td></tr><tr><td>b</td><td class=num>2</td></tr>
 </tbody></table>
-<form class=filters><form></form></form>
-<dialog><select></select></dialog>
 <svg><rect fill="#ff0000"/></svg>
+<img src="x.png">
+<h3>Loose</h3>
+<section><h4>Too deep for its level</h4></section>
+<table><thead><tr><th>Delta</th></tr></thead><tbody>
+<tr><td class=num>-1</td></tr><tr><td class=num>2</td></tr></tbody></table>
+<table><tbody><tr><td>a</td><td>b</td><td>c</td><td>d</td><td>e</td><td>f</td></tr>
+</tbody></table>
+<section><p>No heading.</p></section>
 </section></main></body></html>"""
 
 EXPECTED = [
@@ -69,9 +85,14 @@ EXPECTED = [
     "more than one highlight",
     'numeric column "Value" needs class="num"',
     'numeric column "Value" mixes decimal places',
-    "region inside a region",
-    "controls inside a modal",
     'fill="#ff0000" without an admission comment',
+    "<img> without alt text",
+    "<h3> outside its own section",
+    "<h4> opens a section 2 deep; its heading is <h3>",
+    'numeric column "Delta" uses "-"',
+    "one row of 6 fields",
+    "a section opens with its heading",
+    "a single section on the page",
 ]
 
 SOURCE = """<html><body><div class=card>
@@ -87,7 +108,7 @@ RESTYLE = """<main><header><h1>Install guide</h1></header>
 <section><h3>Hardware</h3>
 <table><thead><tr><th>Item</th><th>Size</th></tr></thead>
 <tbody><tr><td>Memory</td><td>ECC memory</td></tr></tbody></table>
-<h3>Disks</h3><p>Two disks.</p></section></section>
+<section><h4>Disks</h4><p>Two disks.</p></section></section></section>
 <section><h2>Steps</h2><p>Run the installer.</p></section></main>"""
 
 
@@ -112,7 +133,7 @@ def main() -> None:
 
     # A restyle that drops a heading, moves another and loses a value must
     # be caught.
-    broken = RESTYLE.replace("<h3>Disks</h3><p>Two disks.</p>", "")
+    broken = RESTYLE.replace("<h4>Disks</h4><p>Two disks.</p>", "")
     broken = broken.replace("<h2>Steps</h2>", "")
     broken = broken.replace("<main>", "<main><h2>Steps</h2>")
     broken = broken.replace("ECC memory", "")
